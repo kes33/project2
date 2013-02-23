@@ -10,10 +10,10 @@
 #ifndef BTNODE_H
 #define BTNODE_H
 
-#define NUMNODEPTRS 75
-
 #include "RecordFile.h"
 #include "PageFile.h"
+
+#define NUMNODEPTRS (PageFile::PAGE_SIZE-2*sizeof(int))/12
 
 /**
  * BTLeafNode: The class representing a B+tree leaf node.
