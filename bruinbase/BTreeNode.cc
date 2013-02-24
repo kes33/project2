@@ -367,40 +367,36 @@ RC BTLeafNode::insertInBuffer(int key, const RecordId& rid) {
 
 //----------------------------------------------------------------------------
 
-//////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
 ///////////////////////////  TESTING  //////////////////////////////////
-////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
-//// void BTNonLeafNode::test() {
-////     int * test = buffer + 1 + keyCount * 2;
-////     *test = 5;
-//// }
-//// 
-//// void BTNonLeafNode::printAllValues() {
-////     int * index = buffer;
-////     int value, count = 0;
-//// 
-//// 
-////     value = *index;
-////     cout << value << ", ";
-////     index++;
-////     value = *index;
-////     cout << value << endl;
-//// 
-////     do {
-////         index++;
-////         value = *index;
-////         cout << value << ", ";
-//// 
-////         index++;
-////         value = *index;
-////         cout << value << endl;
-////         count++;
-////     } while (count < keyCount);
-//// 
-//// }
-////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
+// void BTNonLeafNode::test() {
+//     int * test = buffer + 1 + keyCount * 2;
+//     *test = 5;
+// }
+// 
+// void BTNonLeafNode::printAllValues() {
+//     int * index = buffer;
+//     int value, count = 0;
+// 
+// 
+//     value = *index;
+//     cout << value << ", ";
+//     index++;
+//     value = *index;
+//     cout << value << endl;
+// 
+//     do {
+//         index++;
+//         value = *index;
+//         cout << value << ", ";
+// 
+//         index++;
+//         value = *index;
+//         cout << value << endl;
+//         count++;
+//     } while (count < keyCount);
+// 
+// }
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
