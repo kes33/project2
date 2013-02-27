@@ -103,6 +103,13 @@ class BTreeIndex {
   /// this class is destructed. Make sure to store the values of the two 
   /// variables in disk, so that they can be reconstructed when the index
   /// is opened again later.
+
+
+//------------------------helper functions------------------
+
+//writes the metaData of the indexfile back to disk - call this function whenever change the metadata
+RC writeMetaData();
+
 };
 
 #endif /* BTREEINDEX_H */

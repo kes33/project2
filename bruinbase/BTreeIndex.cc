@@ -9,6 +9,7 @@
  
 #include "BTreeIndex.h"
 #include "BTreeNode.h"
+#include <iostream>
 
 using namespace std;
 
@@ -36,32 +37,32 @@ RC BTreeIndex::open(const string& indexname, char mode)
  	if (error != 0)
 		return error;
 	
-	char buf[PageFile::PAGE_SIZE];
-	int *ptr = (int*)buf;	
-	
 	//check if new file 
 	if (pf.endPid()==0) {
-		rootPid = 1;
+		cout << indexname << " is empty - initializing rootPid to -1 and treeHeight to 0" << endl;
+		rootPid = -1;
 		treeHeight = 0;
 
 		//write it immediately to pageId 0 of the file 
-		*ptr = rootPid;
-		ptr++;
-		*ptr = treeHeight;
-		error = pf.write(0, buf);
+		error = writeMetaData();
 		if (error != 0)
 			return error;
   }
 
 	//else load the meta-info from the first page into member variables rootPid and height
 	else {
+		char buf[PageFile::PAGE_SIZE];
+    	int *ptr = (int*)buf;
+		
 		error = pf.read(0,buf);
 		if (error != 0)
 			return error;
 		rootPid = *ptr;
 		ptr++;
 		treeHeight = *ptr;
-	}	 
+	}	
+
+	cout << "info loaded from file " << indexname << ": rootPid is "<< rootPid << " and treeHeight is " << treeHeight << endl; 
 
     return 0;
 }
@@ -72,7 +73,7 @@ RC BTreeIndex::open(const string& indexname, char mode)
  */
 RC BTreeIndex::close()
 {
-    return 0;
+	return (pf.close());	
 }
 
 /*
@@ -83,6 +84,127 @@ RC BTreeIndex::close()
  */
 RC BTreeIndex::insert(int key, const RecordId& rid)
 {
+	RC error;
+	
+	//if tree is empty 
+	if (treeHeight == 0) {
+		cout<< "in insert: tree is empty, creating new root node" << endl;
+	
+		//create an empty leafNode 
+		BTLeafNode* newLeaf = new BTLeafNode;
+
+		//insert into new node
+		cout << "inserting in newly created root" << endl;
+		error = newLeaf->insert(key, rid);
+		if (error != 0) {
+			cerr << "error inserting in newly created root node in BTreeIndex insert" << endl;
+			return error;
+		}
+
+		//set nextNodePtr 
+		newLeaf->setNextNodePtr(-1);
+
+		//set metadata of index to reflect changes
+		treeHeight = 1;  
+		rootPid = pf.endPid();
+		cout << "new root is getting assigned pageId: " << pf.endPid() << endl;
+	
+		//write it all back to disk: 
+		error = writeMetaData();
+		if (error != 0) {
+			cerr << "problem writing metaData to disk when creating new root in insert" << endl;
+			return error;
+		}
+		error = newLeaf->write(pf.endPid(), pf);
+		if (error != 0) {
+			cerr << "error writing initialized root node to disk in BTreeIndex insert" << endl;
+			return error;
+		}
+		
+		delete newLeaf;
+		return 0;
+	}
+
+	else {	//tree is not empty
+		IndexCursor cursor;
+		error = locate(key, cursor);  //will keep track of path followed in vector "parents"
+		if (error != 0) {
+			cerr << "error in call to locate in BTreeIndex insert" << endl;
+			return error;
+		}
+
+		//create new BTLeafNode 
+		BTLeafNode * targetLeaf = new BTLeafNode;
+
+		//read the contents 
+		error = targetLeaf->read(cursor.pid, pf);
+		if (error != 0) {
+			cerr << "error reading from leafNode in BTreeIndex insert" << endl;
+			return error;
+		}
+		
+		//try to insert in node
+		error = targetLeaf->insert(key, rid);  
+		
+		//if node not full - no need to update parent or metadata - write leaf node to disk and return 
+		if (error != RC_NODE_FULL) {
+			cout << "successfully inserted in leaf node - no update of parent necessary" << endl;
+			error = targetLeaf->write(cursor.pid, pf);
+			if (error != 0) {
+				cerr << "error writing updated leafNode in BTreeIndex when no parent update necessary" << endl;
+				return error;
+			}
+			delete targetLeaf;
+			return 0;
+		}
+
+		else {     //need to create sibling node
+			//create new leaf node 
+			BTLeafNode * siblingLeaf = new BTLeafNode;
+
+			int siblingKey;  //will be filled by call to insertAndSplit with new key for parent
+			int siblingPid = pf.endPid();  //set pid for new sibling node
+			int siblingNodePtr = targetLeaf->getNextNodePtr();
+			error = targetLeaf->insertAndSplit(key, rid, *siblingLeaf, siblingKey);
+			if (error != 0) {
+				cerr << "error calling leafNode insertAndSplit from BTreeIndex insert" << endl;
+				return error;
+			}			
+
+			//reset node pointers:
+			siblingLeaf->setNextNodePtr(siblingNodePtr);
+			targetLeaf->setNextNodePtr(siblingPid);
+
+			//write to disk
+			error = siblingLeaf->write(siblingPid, pf);
+			if (error != 0) {
+				cerr << "error writing newly created sibling node at leaf level insert in BTreeIndex insert" << endl;
+				return error;
+			}
+			
+			error = targetLeaf->write(cursor.pid, pf);
+			if (error != 0) {
+				cerr << "error writing targetLeaf to disk in BTreeIndex insert after split of leaf node" << endl;
+				return error;
+			}
+
+			//delete leaf nodes created
+			delete siblingLeaf;
+			delete targetLeaf;
+			
+			//update parent with value in siblingKey
+			//
+			//
+			//
+			//
+			//
+			//
+			//
+			//
+			//
+			//
+		}
+	}
     return 0;
 }
 
@@ -121,4 +243,22 @@ RC BTreeIndex::locate(int searchKey, IndexCursor& cursor)
 RC BTreeIndex::readForward(IndexCursor& cursor, int& key, RecordId& rid)
 {
     return 0;
+}
+
+
+//--------------------------------helper functions------------------------------
+
+RC BTreeIndex::writeMetaData() {
+	RC error;
+    char buf[PageFile::PAGE_SIZE];
+    int *ptr = (int*)buf;
+
+    *ptr = rootPid;
+    ptr++;
+	*ptr = treeHeight;
+    error=pf.write(0, buf);
+    if (error!=0)
+		return error;
+
+	return 0;
 }
