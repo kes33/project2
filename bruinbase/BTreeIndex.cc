@@ -28,7 +28,41 @@ BTreeIndex::BTreeIndex()
  * @return error code. 0 if no error
  */
 RC BTreeIndex::open(const string& indexname, char mode)
-{
+{	
+	RC error;
+	
+	//call pf.open()
+	error = pf.open(indexname, mode);	
+ 	if (error != 0)
+		return error;
+	
+	char buf[PageFile::PAGE_SIZE];
+	int *ptr = (int*)buf;	
+	
+	//check if new file 
+	if (pf.endPid()==0) {
+		rootPid = 1;
+		treeHeight = 0;
+
+		//write it immediately to pageId 0 of the file 
+		*ptr = rootPid;
+		ptr++;
+		*ptr = treeHeight;
+		error = pf.write(0, buf);
+		if (error != 0)
+			return error;
+  }
+
+	//else load the meta-info from the first page into member variables rootPid and height
+	else {
+		error = pf.read(0,buf);
+		if (error != 0)
+			return error;
+		rootPid = *ptr;
+		ptr++;
+		treeHeight = *ptr;
+	}	 
+
     return 0;
 }
 

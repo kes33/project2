@@ -13,6 +13,7 @@
 #include "Bruinbase.h"
 #include "PageFile.h"
 #include "RecordFile.h"
+#include <stack>
              
 /**
  * The data structure to point to a particular entry at a b+tree leaf node.
@@ -95,6 +96,9 @@ class BTreeIndex {
 
   PageId   rootPid;    /// the PageId of the root node
   int      treeHeight; /// the height of the tree
+
+  std::stack<PageId> parents;
+
   /// Note that the content of the above two variables will be gone when
   /// this class is destructed. Make sure to store the values of the two 
   /// variables in disk, so that they can be reconstructed when the index
