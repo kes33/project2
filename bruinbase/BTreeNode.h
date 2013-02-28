@@ -110,6 +110,10 @@ class BTLeafNode {
 //returns RC_FILE_WRITE_FAILED on error
     RC write(PageId pid, PageFile& pf);
 
+	//print function
+	void printNode ();
+
+
   private:
    /**
     * The main memory buffer for loading the content of the disk page 
@@ -126,7 +130,7 @@ class BTLeafNode {
 	char* bufPlacement (const char* buf, int key, int& eid);	
 
 	//print function
-	void printNode (char* buffer);
+	//void printNode ();
 
 	//helper function used by both insert and insertAndSplit - doesn't check if node full
 	RC insertInBuffer(int key, const RecordId& rid);
@@ -215,7 +219,7 @@ class BTNonLeafNode {
     RC write(PageId pid, PageFile& pf);
 
 //     void test();
-//     void printAllValues();
+     void printAllValues();
 
   private:
     int keyCount;

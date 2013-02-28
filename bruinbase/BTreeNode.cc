@@ -31,9 +31,11 @@ RC BTLeafNode::read(PageId pid, const PageFile& pf)
 //returns RC_FILE_WRITE_FAILED on error
 RC BTLeafNode::write(PageId pid, PageFile& pf)
 { 
-	if (pf.write(pid,(const void*)buffer)!=0){
+	RC error;
+	error = pf.write(pid, buffer);
+	if (error !=0) {
 		cerr << "Error on writing BTLeafNode to PageFile" << endl; 
-		exit(RC_FILE_WRITE_FAILED);
+		return(RC_FILE_WRITE_FAILED);
 	}
 
 	return 0; 
@@ -96,9 +98,9 @@ RC BTLeafNode::insertAndSplit(int key, const RecordId& rid,
         int key;
     };
 
-	cout << "node's buffer currently reads: ";
-	printNode(buffer);
-	cout << endl;
+	//cout << "node's buffer currently reads: ";
+	//printNode();
+	//cout << endl;
 
 	//find where new key should go
 	int temp;
@@ -111,7 +113,7 @@ RC BTLeafNode::insertAndSplit(int key, const RecordId& rid,
 	//find split point - ptr will point to first location to be copied to sibling
 	struct leafNode* ptr = (struct leafNode*)(buffer+sizeof(int));
 	int numOnLeft = (NUMNODEPTRS+1)/2;
-	cout << "number of keys staying on left is " << numOnLeft << endl;
+	//cout << "number of keys staying on left is " << numOnLeft << endl;
 	int i;
 	for (i=0; i < numOnLeft; i++) {
 		ptr++;
@@ -133,13 +135,13 @@ RC BTLeafNode::insertAndSplit(int key, const RecordId& rid,
 	//remove rest of buffer
 	memset(ptr, '\0', amtToCopy);
 
-	cout << "buffer now holds ";
- 	printNode(buffer);
-	cout << endl;
+	//cout << "buffer now holds ";
+ 	//printNode();
+	//cout << endl;
 
-	cout << "sibling now holds: ";
-    sibling.printNode(sibling.buffer);
-    cout << endl;
+	//cout << "sibling now holds: ";
+    //sibling.printNode(sibling.buffer);
+    //cout << endl;
 
 	//store the value of the sibling key in siblingKey
 	char* ptr2 = sibling.buffer + sizeof(int);
@@ -234,9 +236,9 @@ RC BTLeafNode::setNextNodePtr(PageId pid)
 	
 	*(int*)ptr = pid;
 
-	cout << "after setting nextNodePtr, buffer now reads: ";
-	printNode(buffer);
-	cout << endl;
+	//cout << "after setting nextNodePtr, buffer now reads: ";
+	//printNode();
+	//cout << endl;
 
 	return 0; 
 }
@@ -245,14 +247,14 @@ RC BTLeafNode::setNextNodePtr(PageId pid)
 //helper functions:
 
 //printNode helper function
-void BTLeafNode::printNode(char* buf) {
+void BTLeafNode::printNode() {
 	struct leafNode {
 		RecordId rid;
 		int key;
 	};
 
-	struct leafNode* ptr = (struct leafNode*)(buf + sizeof(int));
-	//cout << "in printNode, buffer is at: " << (void*)buf << endl;
+	struct leafNode* ptr = (struct leafNode*)(buffer + sizeof(int));
+	//cout << "in printNode, buffer is at: " << (void*)buffer << endl;
 	//cout << "in printNode, ptr starts at: " << (void*)ptr << endl;
 
 	int count;
@@ -324,7 +326,7 @@ char* BTLeafNode::goToEid (char* buffer, int eid)
 RC BTLeafNode::insertInBuffer(int key, const RecordId& rid) {
 
 	//cout << "node's buffer currently reads: ";
-	//printNode(buffer);
+	//printNode();
 	//cout << endl;
 
 	//find where new key should go
@@ -358,9 +360,9 @@ RC BTLeafNode::insertInBuffer(int key, const RecordId& rid) {
 	//increment the keyCount variable
 	setKeyCount(getKeyCount()+1);
 	
-	cout << "after insert, buffer is now: ";
-	printNode(buffer);
-	cout << endl;
+	//cout << "after insert, buffer is now: ";
+	//printNode();
+	//cout << endl;
 
 	return 0; 
 }
@@ -374,29 +376,28 @@ RC BTLeafNode::insertInBuffer(int key, const RecordId& rid) {
 //     *test = 5;
 // }
 // 
-// void BTNonLeafNode::printAllValues() {
-//     int * index = buffer;
-//     int value, count = 0;
-// 
-// 
-//     value = *index;
-//     cout << value << ", ";
-//     index++;
-//     value = *index;
-//     cout << value << endl;
-// 
-//     do {
-//         index++;
-//         value = *index;
-//         cout << value << ", ";
-// 
-//         index++;
-//         value = *index;
-//         cout << value << endl;
-//         count++;
-//     } while (count < keyCount);
-// 
-// }
+ void BTNonLeafNode::printAllValues() {
+     int * index = buffer;
+     int value, count = 0;
+ 
+ 
+     value = *index;
+     cout << value << ", ";
+     index++;
+     value = *index;
+     cout << value << endl; 
+     do {
+         index++;
+         value = *index;
+         cout << value << ", ";
+ 
+         index++;
+         value = *index;
+         cout << value << endl;
+         count++;
+     } while (count < keyCount);
+ 
+ }
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 

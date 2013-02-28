@@ -90,6 +90,9 @@ class BTreeIndex {
    * @return error code. 0 if no error
    */
   RC readForward(IndexCursor& cursor, int& key, RecordId& rid);
+
+	//helper function for debugging
+	void printRoot();
   
  private:
   PageFile pf;         /// the PageFile used to store the actual b+tree in disk
@@ -107,8 +110,11 @@ class BTreeIndex {
 
 //------------------------helper functions------------------
 
-//writes the metaData of the indexfile back to disk - call this function whenever change the metadata
-RC writeMetaData();
+	//writes the metaData of the indexfile back to disk - call this function whenever change the metadata
+	RC writeMetaData();
+	
+	//helper function called to recursively update the BTreeIndex after an insertion at the leaf level, until no splits
+	RC updateParent(PageId right, int key, PageId left);
 
 };
 
