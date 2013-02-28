@@ -1,9 +1,11 @@
 #include "BTreeNode.h"
+#include "BTreeIndex.h"
 #include <iostream>
 using namespace std;
 
 int main() {
 
+/*
 	BTLeafNode* ptr = new BTLeafNode;
 	
 	//cout << "object is at: " << ptr << endl;
@@ -45,5 +47,28 @@ int main() {
 
 	delete ptr;
 	delete sibling;
+*/
+
+	BTreeIndex * index = new BTreeIndex;
+	index->open("BTreeIndex.idx", 'w');
+
+	int i = 0;
+	int j = 10;
+	RecordId rid;
+	while (i < 7) {
+		rid.pid = 0;
+		rid.sid = i;
+		int key = j;
+
+		index->insert(key, rid);
+		j--;
+		i++;
+	}
+
+	index->close();
+	
+	delete index;
 	return 0;
+
+
 }
