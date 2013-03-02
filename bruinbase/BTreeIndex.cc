@@ -422,8 +422,10 @@ RC BTreeIndex::locate(int searchKey, IndexCursor& cursor) {
     // find entry for searchKey within leaf node
     cout << "locate: locating searchKey in leaf node" << endl;
     int eid;
-    if ((rc = leafNode.locate(searchKey, eid)) != 0)
+    if ((rc = leafNode.locate(searchKey, eid)) != 0) {
+        cout << "error: leafNode.locate()" << endl;
         return rc;
+    }
     
     // save PageId, entry ID in cursor and return
     cout << "locate: saving pid and eid to cursor" << endl;
