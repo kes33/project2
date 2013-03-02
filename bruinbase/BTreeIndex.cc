@@ -375,8 +375,52 @@ RC BTreeIndex::updateParent(PageId right, int key, PageId left) {
  *                    with the key value.
  * @return error code. 0 if no error.
  */
-RC BTreeIndex::locate(int searchKey, IndexCursor& cursor)
-{
+RC BTreeIndex::locate(int searchKey, IndexCursor& cursor) {
+    RC rc;
+    PageId pid = rootPid;
+
+
+    // return error if tree height == 0
+    if (treeHeight == 0)
+        return RC_NO_SUCH_RECORD;
+
+
+    // treeHeight has more than one node
+    if (treeHeight > 1) {
+        BTNonLeafNode nonLeafNode;
+        
+        // descend tree until leaf node is reached
+        int height = 1;
+        
+        while (height < treeHeight) {
+            // read current node into memory
+            if ((rc = nonLeafNode.read(pid, pf)) != 0)
+                return rc;
+            
+            // get pointer to child node
+            if ((rc = nonLeafNode.locateChildPtr(searchKey, pid)) != 0)
+                return rc;
+            
+            // update current height
+            height++;
+        }        
+    } // leaf node reached
+
+
+    // read node into memory
+    // (if tree contains only the root node (treeHeight == 1), code starts here)
+    BTLeafNode leafNode;
+    if ((rc = leafNode.read(pid, pf)) != 0)
+        return rc;
+    
+    // find entry for searchKey within leaf node
+    int eid;
+    if ((rc = leafNode.locate(searchKey, eid)) != 0)
+        return rc;
+    
+    // save PageId, entry ID in cursor and return
+    cursor.pid = pid;
+    cursor.eid = eid;
     return 0;
 }
 
@@ -388,11 +432,28 @@ RC BTreeIndex::locate(int searchKey, IndexCursor& cursor)
  * @param rid[OUT] the RecordId stored at the index cursor location.
  * @return error code. 0 if no error
  */
-RC BTreeIndex::readForward(IndexCursor& cursor, int& key, RecordId& rid)
-{
+RC BTreeIndex::readForward(IndexCursor& cursor, int& key, RecordId& rid) {
+    RC rc;
+    BTLeafNode node;
+    
+    
+    // read the page given by cursor into memory
+    if ((rc = node.read(cursor.pid, pf)) != 0)
+        return rc;
+    
+    
+    // read entry and store key and rid
+    if ((rc = node.readEntry(cursor.eid, key, rid)) != 0)
+        return rc;
+    
+    
+    // update cursor
+    if (cursor.eid == node.getKeyCount() - 1)
+        cursor.eid = (int) node.getNextNodePtr();
+    else
+        cursor.eid++;
     return 0;
 }
-
 
 //--------------------------------helper functions------------------------------
 
