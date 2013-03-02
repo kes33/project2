@@ -49,9 +49,9 @@ int main() {
 	delete sibling;
 */
 
-	BTreeIndex * index = new BTreeIndex;
-	index->open("BTreeIndex.idx", 'w');
-
+	BTreeIndex index;
+	index.open("BTreeIndex.idx", 'w');
+ 
 	int i = 0;
 	int j = 10;
 	RecordId rid;
@@ -60,14 +60,41 @@ int main() {
 		rid.sid = i;
 		int key = j;
 
-		index->insert(key, rid);
+		index.insert(key, rid);
 		j--;
 		i++;
 	}
 
-	index->close();
+    IndexCursor cursor;
+    int returnValue = index.locate(5, cursor);
+    cout << "TESTING LOCATE" << endl; 
+    cout << "return value: " << returnValue << endl;
+    cout << "cursor pid: " << cursor.pid << endl;
+    cout << "cursor eid: " << cursor.eid << endl << endl;
+
+
+    int key;
+    RecordId rid2;
+    returnValue = index.readForward(cursor, key, rid2);
+    cout << "TESTING READFORWARD" << endl;
+    cout << "return value: " << returnValue << endl;
+    cout << "cursor pid: " << cursor.pid << endl;
+    cout << "cursor eid: " << cursor.eid << endl;
+    cout << "key: " << key << endl;
+    cout << "rid pid: " << rid2.pid << endl;
+    cout << "rid sid: " << rid2.sid << endl << endl;
+
+
+    cout << "TESTING NONLEAFNODE" << endl;
+    BTNonLeafNode nln;
+   
+    for (int i = 1; i < 10; i++)
+        nln.insert(2*i, 2*i+1);
+    nln.printAllValues();
+
+
+	index.close();
 	
-	delete index;
 	return 0;
 
 
