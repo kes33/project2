@@ -53,9 +53,9 @@ int main() {
 	index.open("BTreeIndex.idx", 'w');
  
 	int i = 0;
-	int j = 10;
+	int j = 100;
 	RecordId rid;
-	while (i < 7) {
+	while (i < 100) {
 		rid.pid = 0;
 		rid.sid = i;
 		int key = j;
@@ -65,32 +65,33 @@ int main() {
 		i++;
 	}
 
-    IndexCursor cursor;
-    int returnValue = index.locate(5, cursor);
-    cout << "TESTING LOCATE" << endl; 
-    cout << "return value: " << returnValue << endl;
-    cout << "cursor pid: " << cursor.pid << endl;
-    cout << "cursor eid: " << cursor.eid << endl << endl;
 
 
-    int key;
-    RecordId rid2;
-    returnValue = index.readForward(cursor, key, rid2);
-    cout << "TESTING READFORWARD" << endl;
-    cout << "return value: " << returnValue << endl;
-    cout << "cursor pid: " << cursor.pid << endl;
-    cout << "cursor eid: " << cursor.eid << endl;
-    cout << "key: " << key << endl;
-    cout << "rid pid: " << rid2.pid << endl;
-    cout << "rid sid: " << rid2.sid << endl << endl;
+// TESTING LOCATE
+//     IndexCursor cursor;
+//     int returnValue = index.locate(5, cursor);
+//     cout << "TESTING LOCATE" << endl; 
+//     cout << "return value: " << returnValue << endl;
+//     cout << "cursor pid: " << cursor.pid << endl;
+//     cout << "cursor eid: " << cursor.eid << endl << endl;
 
+// TESTING READFORWARD
+//     int key;
+//     RecordId rid2;
+//     returnValue = index.readForward(cursor, key, rid2);
+//     cout << "TESTING READFORWARD" << endl;
+//     cout << "return value: " << returnValue << endl;
+//     cout << "cursor pid: " << cursor.pid << endl;
+//     cout << "cursor eid: " << cursor.eid << endl;
+//     cout << "key: " << key << endl;
+//     cout << "rid pid: " << rid2.pid << endl;
+//     cout << "rid sid: " << rid2.sid << endl << endl;
 
-    cout << "TESTING NONLEAFNODE" << endl;
-    BTNonLeafNode nln;
-   
-    for (int i = 1; i < 10; i++)
-        nln.insert(2*i, 2*i+1);
-    nln.printAllValues();
+// TESTING PRINTALLVALUES
+//     BTNonLeafNode nln;
+//     for (int i = 1; i < 10; i++)
+//         nln.insert(2*i, 2*i+1); // add (key,pid) pairs: (0,1), (2,3), (4,5), etc
+//     nln.printAllValues();
 
 
 	index.close();

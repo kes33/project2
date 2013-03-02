@@ -379,14 +379,18 @@ RC BTreeIndex::locate(int searchKey, IndexCursor& cursor) {
     RC rc;
     PageId pid = rootPid;
 
+    cout << "locate: looking for searchKey " << searchKey << endl;
 
     // return error if tree height == 0
-    if (treeHeight == 0)
+    if (treeHeight == 0) {
+        cout << "error: treeHeight = 0" << endl;
         return RC_NO_SUCH_RECORD;
+    }
 
 
     // treeHeight has more than one node
     if (treeHeight > 1) {
+        cout << "locate: treeHeight > 1, iterating through nodes" << endl;
         BTNonLeafNode nonLeafNode;
         
         // descend tree until leaf node is reached
@@ -403,22 +407,26 @@ RC BTreeIndex::locate(int searchKey, IndexCursor& cursor) {
             
             // update current height
             height++;
-        }        
+        }
+        cout << "locate: treeHeight > 1, leaf level reached" << endl;
     } // leaf node reached
 
 
     // read node into memory
     // (if tree contains only the root node (treeHeight == 1), code starts here)
+    cout << "locate: reading leaf node" << endl;
     BTLeafNode leafNode;
     if ((rc = leafNode.read(pid, pf)) != 0)
         return rc;
     
     // find entry for searchKey within leaf node
+    cout << "locate: locating searchKey in leaf node" << endl;
     int eid;
     if ((rc = leafNode.locate(searchKey, eid)) != 0)
         return rc;
     
     // save PageId, entry ID in cursor and return
+    cout << "locate: saving pid and eid to cursor" << endl;
     cursor.pid = pid;
     cursor.eid = eid;
     return 0;
@@ -436,22 +444,28 @@ RC BTreeIndex::readForward(IndexCursor& cursor, int& key, RecordId& rid) {
     RC rc;
     BTLeafNode node;
     
-    
     // read the page given by cursor into memory
+    cout << "readForward: reading page into memory" << endl;
     if ((rc = node.read(cursor.pid, pf)) != 0)
         return rc;
     
     
     // read entry and store key and rid
+    cout << "readForward: reading entry from page" << endl;
     if ((rc = node.readEntry(cursor.eid, key, rid)) != 0)
         return rc;
     
     
     // update cursor
-    if (cursor.eid == node.getKeyCount() - 1)
+    cout << "readForward: updating cursor to point to next entry" << endl;
+    if (cursor.eid == node.getKeyCount() - 1) {
+        cout << "readForward: cursor is at last key, setting eid to next node ptr" << endl;
         cursor.eid = (int) node.getNextNodePtr();
-    else
+    }
+    else {
+        cout << "readForward: incrementing cursor" << endl;
         cursor.eid++;
+    }
     return 0;
 }
 
