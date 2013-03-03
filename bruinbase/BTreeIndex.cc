@@ -378,6 +378,8 @@ RC BTreeIndex::updateParent(PageId right, int key, PageId left) {
 RC BTreeIndex::locate(int searchKey, IndexCursor& cursor) {
     RC rc;
     PageId pid = rootPid;
+    while(!parents.empty())
+        parents.pop();
 
     cout << "locate: looking for searchKey " << searchKey << endl;
 
@@ -397,6 +399,9 @@ RC BTreeIndex::locate(int searchKey, IndexCursor& cursor) {
         int height = 1;
         
         while (height < treeHeight) {
+            // update stack containing PageIds
+            parents.push(pid);
+            
             // read current node into memory
             if ((rc = nonLeafNode.read(pid, pf)) != 0)
                 return rc;
