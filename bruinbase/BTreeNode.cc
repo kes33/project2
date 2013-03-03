@@ -462,10 +462,11 @@ RC BTNonLeafNode::insert(int key, PageId pid)
 
         // shift all PageId/key pairs down to make room for new pair
         int bytesToCopy = PageFile::PAGE_SIZE - (keyPos-buffer) - 2*sizeof(int);
-        int * temp = (int *) malloc (bytesToCopy);
-        memcpy(temp, keyPos, bytesToCopy);
-        memcpy(keyPos + 2, temp, bytesToCopy);
-        free(temp);
+		char temp[bytesToCopy];
+        memcpy((void*)temp, (void*)keyPos, bytesToCopy);
+		int* newPos = keyPos+2;
+        memcpy((void*)newPos, (void*)temp, bytesToCopy);
+        //free(temp);
     }
 
     // write pid and key

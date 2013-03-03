@@ -116,6 +116,9 @@ class BTreeIndex {
 	//helper function called to recursively update the BTreeIndex after an insertion at the leaf level, until no splits
 	RC updateParent(PageId right, int key, PageId left);
 
+	//locating position for insert
+	RC locateForInsert(int searchKey, IndexCursor& cursor);
+
 };
 
 #endif /* BTREEINDEX_H */

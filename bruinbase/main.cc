@@ -53,15 +53,15 @@ int main() {
 	index.open("BTreeIndex.idx", 'w');
  
 	int i = 0;
-	int j = 100;
+	int j = 0;
 	RecordId rid;
-	while (i < 100) {
+	while (i < 10) {
 		rid.pid = 0;
 		rid.sid = i;
 		int key = j;
 
 		index.insert(key, rid);
-		j--;
+		j++;
 		i++;
 	}
 

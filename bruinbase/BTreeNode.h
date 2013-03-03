@@ -13,7 +13,8 @@
 #include "RecordFile.h"
 #include "PageFile.h"
 
-#define NUMNODEPTRS (PageFile::PAGE_SIZE-2*sizeof(int))/12
+#define NUMNODEPTRS 5 
+//(PageFile::PAGE_SIZE-2*sizeof(int))/12
 
 /**
  * BTLeafNode: The class representing a B+tree leaf node.
@@ -149,7 +150,8 @@ class BTLeafNode {
 class BTNonLeafNode {
   public:
    // number of keys per node
-   static const int KEYS_PER_NODE = (PageFile::PAGE_SIZE - 2*sizeof(int)) / (2*sizeof(int));
+   static const int KEYS_PER_NODE = NUMNODEPTRS;
+	//(PageFile::PAGE_SIZE - 2*sizeof(int)) / (2*sizeof(int));
      // Note that we subtract sizeof(int) twice from PAGE_SIZE because the first
      // four bytes are used to store the total # keys and the second four bytes
      // store the first pointer.

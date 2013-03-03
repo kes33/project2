@@ -156,11 +156,7 @@ RC BTreeIndex::insert(int key, const RecordId& rid)
 
 	else {	//tree is not empty
 		IndexCursor cursor;
-		error = locate(key, cursor);  //will keep track of path followed in vector "parents"
-		if (error != 0) {
-			cerr << "error in call to locate in BTreeIndex insert" << endl;
-			return error;
-		}
+		locateForInsert(key, cursor);  //will keep track of path followed in vector "parents"
 
 		//create new BTLeafNode 
 		BTLeafNode * targetLeaf = new BTLeafNode;
@@ -289,6 +285,7 @@ RC BTreeIndex::updateParent(PageId right, int key, PageId left) {
 		error = parent->read(parentPid, pf);
 		if (error != 0) {
 			cerr << "error reading in parent node in BTreeIndex updateParent" << endl;
+			delete parent;
 			return error;
 		}
 
@@ -297,7 +294,7 @@ RC BTreeIndex::updateParent(PageId right, int key, PageId left) {
 
 		//insert value in parent - if insert works, we're done
 		error = parent->insert(key, left);
-		if (error = RC_NODE_FULL) {
+		if (error == RC_NODE_FULL) {
 			cout << "parent with pid " << parentPid << " is full on update after insert in BTreeIndex - splitting" << endl;
 
 			//split node
@@ -306,6 +303,8 @@ RC BTreeIndex::updateParent(PageId right, int key, PageId left) {
 			error = parent->insertAndSplit(key, right, *sibling, midKey);
 			if (error != 0) {
 				cerr << "error in insertAndSplit in updateParents of BTreeIndex" << endl;
+				delete parent;
+				delete sibling;
 				return error;
 			}
 
@@ -314,6 +313,8 @@ RC BTreeIndex::updateParent(PageId right, int key, PageId left) {
 			error = sibling->write(siblingPid, pf);
 			if (error!=0) {
 				cerr << "error writing new sibling to disk after split in updateParents in BTreeIndex" << endl;
+				delete parent;
+				delete sibling;
 				return error;
 			}
 			
@@ -355,6 +356,78 @@ RC BTreeIndex::updateParent(PageId right, int key, PageId left) {
 	}
 	return 0;
 }
+
+
+RC BTreeIndex::locateForInsert(int searchKey, IndexCursor& cursor) {
+    RC rc;
+    PageId pid = rootPid;
+    while(!parents.empty())
+        parents.pop();
+
+    cout << "locate: looking for searchKey " << searchKey << endl;
+
+    // return error if tree height == 0
+    if (treeHeight == 0) {
+        cout << "error: treeHeight = 0" << endl;
+        return RC_NO_SUCH_RECORD;
+    }
+
+
+    // treeHeight has more than one node
+    if (treeHeight > 1) {
+        cout << "locate: treeHeight > 1, iterating through nodes" << endl;
+        BTNonLeafNode nonLeafNode;
+
+        // descend tree until leaf node is reached
+        int height = 1;
+
+        while (height < treeHeight) {
+            // update stack containing PageIds
+            parents.push(pid);
+
+            // read current node into memory
+            if ((rc = nonLeafNode.read(pid, pf)) != 0)
+                return rc;
+
+            // get pointer to child node
+            if ((rc = nonLeafNode.locateChildPtr(searchKey, pid)) != 0)
+                return rc;
+
+            // update current height
+            height++;
+        }
+        cout << "locate: treeHeight > 1, leaf level reached" << endl;
+    } // leaf node reached
+
+
+    // read node into memory
+    // (if tree contains only the root node (treeHeight == 1), code starts here)
+    cout << "locate: reading leaf node" << endl;
+    BTLeafNode leafNode;
+    if ((rc = leafNode.read(pid, pf)) != 0)
+        return rc;
+
+    // find entry for searchKey within leaf node
+    cout << "locate: locating searchKey in leaf node" << endl;
+    int eid;
+    if ((rc = leafNode.locate(searchKey, eid)) != 0) { // new key will be largest in node 
+    	cout << "key is largest in current leaf - will insert at back" << endl;
+		cursor.pid = pid;
+		cursor.eid = -1;
+	}
+
+    else {
+		// save PageId, entry ID in cursor and return
+    	cout << "locate: saving pid and eid to cursor" << endl;
+    	cursor.pid = pid;
+    	cursor.eid = eid;
+    }
+	return 0;
+}
+
+
+
+
 
 /*
  * Find the leaf-node index entry whose key value is larger than or 
