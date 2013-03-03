@@ -294,7 +294,7 @@ RC BTreeIndex::updateParent(PageId right, int key, PageId left) {
 
 		//insert value in parent - if insert works, we're done
 		error = parent->insert(key, left);
-		if (error == RC_NODE_FULL) {
+		if (error !=0) {
 			cout << "parent with pid " << parentPid << " is full on update after insert in BTreeIndex - splitting" << endl;
 
 			//split node
@@ -308,7 +308,7 @@ RC BTreeIndex::updateParent(PageId right, int key, PageId left) {
 				return error;
 			}
 
-			//write this new node to disk
+			//write these new nodes to disk
 			PageId siblingPid = pf.endPid();
 			error = sibling->write(siblingPid, pf);
 			if (error!=0) {
@@ -317,6 +317,13 @@ RC BTreeIndex::updateParent(PageId right, int key, PageId left) {
 				delete sibling;
 				return error;
 			}
+			error = parent->write(parentPid, pf);
+            if (error!=0) {
+                cerr << "error writing parent to disk after split in updateParents in BTreeIndex" << endl;
+                delete parent;
+                delete sibling;
+                return error;
+            }
 			
 			cout << "node was split into the following nodes:" << endl;
 			cout << "on left " << endl;
@@ -345,6 +352,14 @@ RC BTreeIndex::updateParent(PageId right, int key, PageId left) {
 			cout << "update of parents completed successfully at node " << parentPid << " which is now: " << endl;
 			parent->printAllValues();	
 
+			//write newly updated node to disk
+			error = parent->write(parentPid, pf);
+            if (error!=0) {
+                cerr << "error writing parent to disk after insertion in updateParents in BTreeIndex" << endl;
+                delete parent;
+                return error;
+            }
+		
 			//empty the parents stack
 			while (!parents.empty()) {
 				parents.pop();

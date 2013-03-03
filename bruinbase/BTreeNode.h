@@ -150,7 +150,7 @@ class BTLeafNode {
 class BTNonLeafNode {
   public:
    // number of keys per node
-   static const int KEYS_PER_NODE = NUMNODEPTRS;
+   static const int KEYS_PER_NODE = NUMNODEPTRS-1;
 	//(PageFile::PAGE_SIZE - 2*sizeof(int)) / (2*sizeof(int));
      // Note that we subtract sizeof(int) twice from PAGE_SIZE because the first
      // four bytes are used to store the total # keys and the second four bytes
