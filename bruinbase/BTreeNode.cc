@@ -444,9 +444,16 @@ int BTNonLeafNode::getKeyCount()
 RC BTNonLeafNode::insert(int key, PageId pid)
 {
     // check if node has room to add key/pid pair
-    if (getKeyCount() == KEYS_PER_NODE)
+    if (getKeyCount() == KEYS_PER_NODE) {
+        cout << "BTNonLeafNode.insert(): error adding (key=" << key << ",pid=" << pid << ") to node; node full" << endl;
         return RC_NODE_FULL;
+    }
 
+    return insertKey(key, pid);
+}
+
+
+RC BTNonLeafNode::insertKey(int key, PageId pid) {
     // position of first PageId/key pair
     int * keyPos = buffer;
 	keyPos += 2;
@@ -456,7 +463,6 @@ RC BTNonLeafNode::insert(int key, PageId pid)
         // find positions where PageId/key should be inserted
         int pairIndex = 0;
         while (key > *keyPos && pairIndex < keyCount) {
-            cout << "advancing by one spot" << endl; 
 			keyPos += 2;
             pidPos += 2;
             pairIndex++;
@@ -468,6 +474,15 @@ RC BTNonLeafNode::insert(int key, PageId pid)
         memcpy((void*)temp, (void*)keyPos, bytesToCopy);
 		int* newPos = keyPos+2;
         memcpy((void*)newPos, (void*)temp, bytesToCopy);
+        
+//         cout << "inserting (key=" << key << ",pid=" << pid << ")" << endl;
+//         cout << "buffer pos: " << buffer << endl;
+//         cout << "key pos: " << keyPos << endl;
+//         cout << "pid pos: " << pidPos << endl;
+//         cout << "new pos: " << newPos << endl;
+//         cout << "bytesToCopy: " << bytesToCopy << endl;
+//         cout << "end of buffer: " << (int*)(bytesToCopy + (char*)newPos) << endl;
+        
     }
 
     // write pid and key
@@ -490,24 +505,30 @@ RC BTNonLeafNode::insert(int key, PageId pid)
 RC BTNonLeafNode::insertAndSplit(int key, PageId pid, BTNonLeafNode& sibling, int& midKey)
 {
     // insert (key, pid) pair into this node
-    insert(key, pid);
-
+    insertKey(key, pid);
+    
+    cout << "BTNonLeafNode.insertAndSplit: (key,pid) (" << key << "," << pid << ") inserted, printing all values before split" << endl;
+    printAllValues();
+    
     // update key counts
     keyCount = keyCount / 2;
-    sibling.keyCount = keyCount;
+    if (keyCount % 2 == 0)
+        sibling.keyCount = keyCount - 1;
+    else
+        sibling.keyCount = keyCount;
 
     *buffer = keyCount;
-    *(sibling.buffer) = keyCount;
+    *(sibling.buffer) = sibling.keyCount;
 
     // return middle key
-    midKey = *(buffer + 2*(keyCount + 1));
+    midKey = *(buffer + 2 + 2*keyCount);    // note: must skip key count and first pid
 
     // calculate bytes going to each sibling
-    int bytesToKeep = 2*(keyCount + 1) * sizeof(int);
-    int bytesToSend = PageFile::PAGE_SIZE - bytesToKeep - sizeof(int);
+    int bytesToKeep = (2 + 2*keyCount) * sizeof(int);
+    int bytesToSend = PageFile::PAGE_SIZE - (bytesToKeep + sizeof(int));    // note: need to also send pid of midKey
 
     // copy (key, pid) pairs to sibling
-    memset(sibling.buffer+1, 0, PageFile::PAGE_SIZE);
+    memset(sibling.buffer+1, 0, PageFile::PAGE_SIZE-sizeof(int));   // note: erase all but keyCount
     memcpy(sibling.buffer+1, buffer + bytesToKeep/sizeof(int) + 1, bytesToSend);
 
     // remove copied pairs from this node

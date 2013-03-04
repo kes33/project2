@@ -13,7 +13,7 @@
 #include "RecordFile.h"
 #include "PageFile.h"
 
-#define NUMNODEPTRS 5 
+#define NUMNODEPTRS 10
 //(PageFile::PAGE_SIZE-2*sizeof(int))/12
 
 /**
@@ -151,7 +151,7 @@ class BTNonLeafNode {
   public:
    // number of keys per node
    static const int KEYS_PER_NODE = NUMNODEPTRS-1;
-	//(PageFile::PAGE_SIZE - 2*sizeof(int)) / (2*sizeof(int));
+	//(PageFile::PAGE_SIZE - 2*sizeof(int)) / (2*sizeof(int)) - 1;
      // Note that we subtract sizeof(int) twice from PAGE_SIZE because the first
      // four bytes are used to store the total # keys and the second four bytes
      // store the first pointer.
@@ -224,6 +224,8 @@ class BTNonLeafNode {
      void printAllValues();
 
   private:
+    RC insertKey(int key, PageId pid);
+  
     int keyCount;
    /**
     * The main memory buffer for loading the content of the disk page 

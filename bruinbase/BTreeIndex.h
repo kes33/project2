@@ -93,6 +93,7 @@ class BTreeIndex {
 
 	//helper function for debugging
 	void printRoot();
+// 	void printTree();
   
  private:
   PageFile pf;         /// the PageFile used to store the actual b+tree in disk

@@ -64,7 +64,9 @@ int main() {
 		j++;
 		i++;
 	}
+	
 
+	index.close();
 
 
 // TESTING LOCATE
@@ -88,13 +90,22 @@ int main() {
 //     cout << "rid sid: " << rid2.sid << endl << endl;
 
 // TESTING PRINTALLVALUES
+//     cout << "testing printallvalues" << endl;
 //     BTNonLeafNode nln;
 //     for (int i = 1; i < 10; i++)
 //         nln.insert(2*i, 2*i+1); // add (key,pid) pairs: (0,1), (2,3), (4,5), etc
 //     nln.printAllValues();
+//     
+//     
+//     int midKey;
+//     BTNonLeafNode nlnSibling;
+//     nln.insertAndSplit(5, 25, nlnSibling, midKey);
+//     nln.printAllValues();
+//     nlnSibling.printAllValues();
+//     
+//     cout << "midkey: " << midKey << endl;
+    
 
-
-	index.close();
 	
 	return 0;
 

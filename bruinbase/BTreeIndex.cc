@@ -111,6 +111,8 @@ RC BTreeIndex::close()
  */
 RC BTreeIndex::insert(int key, const RecordId& rid)
 {
+    cout << "BTreeIndex.insert: inserting (key, [rid.pid, rid.sid]) (" << key << ", [" << rid.pid << ", " << rid.sid << "])" << endl;
+
 	RC error;
 	
 	//if tree is empty 
@@ -235,7 +237,7 @@ RC BTreeIndex::insert(int key, const RecordId& rid)
 			else 
 				cout << parents.top();
 
-			cout << ") will now be updated: "<< cursor.pid << " on left, "<< siblingKey << " as key pushed up, and " << siblingPid << "on right" << endl;
+			cout << ") will now be updated: "<< cursor.pid << " on left, "<< siblingKey << " as key pushed up, and " << siblingPid << " on right" << endl;
 			updateParent(cursor.pid, siblingKey, siblingPid);
 		}
 	}
@@ -300,7 +302,8 @@ RC BTreeIndex::updateParent(PageId right, int key, PageId left) {
 			//split node
 			int midKey;
 			BTNonLeafNode * sibling = new BTNonLeafNode;
-			error = parent->insertAndSplit(key, right, *sibling, midKey);
+			cout << "calling insertAndSplit(" << key << ", " << right << ", " << "sibling" << ", " << midKey << ")" << endl;
+			error = parent->insertAndSplit(key, left, *sibling, midKey);
 			if (error != 0) {
 				cerr << "error in insertAndSplit in updateParents of BTreeIndex" << endl;
 				delete parent;
@@ -364,7 +367,7 @@ RC BTreeIndex::updateParent(PageId right, int key, PageId left) {
 			while (!parents.empty()) {
 				parents.pop();
 			}
-			cout << "insertion complete, cleared the parents stack";
+			cout << "insertion complete, cleared the parents stack" << endl;
 		
 			delete parent;
 		}
@@ -511,13 +514,28 @@ RC BTreeIndex::locate(int searchKey, IndexCursor& cursor) {
     BTLeafNode leafNode;
     if ((rc = leafNode.read(pid, pf)) != 0)
         return rc;
+    leafNode.printNode();
     
     // find entry for searchKey within leaf node
     cout << "locate: locating searchKey in leaf node" << endl;
     int eid;
     if ((rc = leafNode.locate(searchKey, eid)) != 0) {
-        cout << "error: leafNode.locate()" << endl;
-        return rc;
+        
+        // entry was not found within leaf node, check next leaf node
+        // if there is no next leaf node, return error
+        pid = leafNode.getNextNodePtr();
+        cout << "next node pointer: " << pid << endl;
+        if (pid == -1)
+            return RC_END_OF_TREE;
+        
+        if ((rc = leafNode.read(pid, pf)) != 0)
+            return rc;
+        
+        // if next leaf node also does not contain searchKey, return error
+        if ((rc = leafNode.locate(searchKey, eid)) != 0) {
+            cout << "error: neither left or right leaf node contains searchKey" << endl;
+            return rc;
+        }
     }
     
     // save PageId, entry ID in cursor and return
@@ -544,18 +562,26 @@ RC BTreeIndex::readForward(IndexCursor& cursor, int& key, RecordId& rid) {
     if ((rc = node.read(cursor.pid, pf)) != 0)
         return rc;
     
+    node.printNode();
     
     // read entry and store key and rid
     cout << "readForward: reading entry from page" << endl;
     if ((rc = node.readEntry(cursor.eid, key, rid)) != 0)
         return rc;
     
+	cout << "readForward: rid of " << cursor.eid << " is (" << rid.pid << ", " << rid.sid << ")" << endl;
     
     // update cursor
     cout << "readForward: updating cursor to point to next entry" << endl;
     if (cursor.eid == node.getKeyCount() - 1) {
-        cout << "readForward: cursor is at last key, setting eid to next node ptr" << endl;
-        cursor.eid = (int) node.getNextNodePtr();
+        cout << "readForward: cursor is at last key, setting pid to next node ptr" << endl;
+
+        cursor.eid = 0;
+        cursor.pid = (int) node.getNextNodePtr();
+        
+        // if next pid is -1, there is no next node, signifying the end of the tree
+        if (cursor.pid == -1)
+            return RC_END_OF_TREE;
     }
     else {
         cout << "readForward: incrementing cursor" << endl;
@@ -565,6 +591,21 @@ RC BTreeIndex::readForward(IndexCursor& cursor, int& key, RecordId& rid) {
 }
 
 //--------------------------------helper functions------------------------------
+
+// void BTreeIndex::printTree() {
+//     if (treeHeight == 0)
+//         cout << "tree has no nodes" << endl;
+//     else if (treeHeight == 1) {
+//         BTLeafNode node;
+//         node.read(rootPid, pf);
+//         node.printNode();
+//     }
+//     else {
+//         BTNonLeafNode node;
+//         node.read(rootPid, pf);
+//         node.printAllValues();
+//     }
+// }
 
 RC BTreeIndex::writeMetaData() {
 	RC error;
