@@ -245,7 +245,7 @@ RC BTreeIndex::insert(int key, const RecordId& rid)
 }
 
 //helper function called to recursively update the BTreeIndex after an insertion at the leaf level, until no splits
-RC BTreeIndex::updateParent(PageId right, int key, PageId left) {
+RC BTreeIndex::updateParent(PageId left, int key, PageId right) {
 
 	RC error;	
 
@@ -257,7 +257,7 @@ RC BTreeIndex::updateParent(PageId right, int key, PageId left) {
 		BTNonLeafNode * newRoot = new BTNonLeafNode;
 		
 		//fill it with the appropriate values
-		error = newRoot->initializeRoot(right, key, left);
+		error = newRoot->initializeRoot(left, key, right);
 		if (error != 0) {
 			cout << "error initializing new root after insert" << endl;
 			return error;
@@ -294,8 +294,11 @@ RC BTreeIndex::updateParent(PageId right, int key, PageId left) {
 		cout << "parent node being updated is: " << endl;
 		parent->printAllValues();
 
+		cout << "left is " << left << endl;
+		cout << "right is " << right << endl;
+
 		//insert value in parent - if insert works, we're done
-		error = parent->insert(key, left);
+		error = parent->insert(key, right);
 		if (error !=0) {
 			cout << "parent with pid " << parentPid << " is full on update after insert in BTreeIndex - splitting" << endl;
 
@@ -303,7 +306,7 @@ RC BTreeIndex::updateParent(PageId right, int key, PageId left) {
 			int midKey;
 			BTNonLeafNode * sibling = new BTNonLeafNode;
 			cout << "calling insertAndSplit(" << key << ", " << right << ", " << "sibling" << ", " << midKey << ")" << endl;
-			error = parent->insertAndSplit(key, left, *sibling, midKey);
+			error = parent->insertAndSplit(key, right, *sibling, midKey);
 			if (error != 0) {
 				cerr << "error in insertAndSplit in updateParents of BTreeIndex" << endl;
 				delete parent;

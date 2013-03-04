@@ -13,7 +13,7 @@
 #include "RecordFile.h"
 #include "PageFile.h"
 
-#define NUMNODEPTRS 10
+#define NUMNODEPTRS 4
 //(PageFile::PAGE_SIZE-2*sizeof(int))/12
 
 /**
