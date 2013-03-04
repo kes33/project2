@@ -55,7 +55,7 @@ int main() {
 	int i = 0;
 	int j = 0;
 	RecordId rid;
-	while (i < 25) {
+	while (i < 15) {
 		rid.pid = 0;
 		rid.sid = i;
 		int key = j;

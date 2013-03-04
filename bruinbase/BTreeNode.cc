@@ -448,25 +448,26 @@ RC BTNonLeafNode::insert(int key, PageId pid)
         return RC_NODE_FULL;
 
     // position of first PageId/key pair
-    int * keyPos = buffer + 2;
+    int * keyPos = buffer;
+	keyPos += 2;
     int * pidPos = keyPos + 1;
 
     if (keyCount != 0) {
         // find positions where PageId/key should be inserted
         int pairIndex = 0;
         while (key > *keyPos && pairIndex < keyCount) {
-            keyPos += 2;
+            cout << "advancing by one spot" << endl; 
+			keyPos += 2;
             pidPos += 2;
             pairIndex++;
         }
 
         // shift all PageId/key pairs down to make room for new pair
-        int bytesToCopy = PageFile::PAGE_SIZE - (keyPos-buffer) - 2*sizeof(int);
+        int bytesToCopy = PageFile::PAGE_SIZE - ((char*)keyPos-(char*)buffer) - 2*sizeof(int);
 		char temp[bytesToCopy];
         memcpy((void*)temp, (void*)keyPos, bytesToCopy);
 		int* newPos = keyPos+2;
         memcpy((void*)newPos, (void*)temp, bytesToCopy);
-        //free(temp);
     }
 
     // write pid and key
