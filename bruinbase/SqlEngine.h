@@ -67,6 +67,11 @@ class SqlEngine {
    * @return error code. 0 if no error
    */
   static RC parseLoadLine(const std::string& line, int& key, std::string& value);
+
+	private:
+
+	static RC linearScan(int attr, RecordFile &rf, const std::vector<SelCond>& cond);
+
 };
 
 #endif /* SQLENGINE_H */
