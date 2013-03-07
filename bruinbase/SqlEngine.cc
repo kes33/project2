@@ -21,6 +21,11 @@
 using namespace std;
 
 // external functions and variables for load file and sql command parsing 
+typedef struct {
+  int       key;  // slot number. the first slot is 0
+  RecordId  rid;  // page number. the first page is 0
+} IndexEntry;
+
 extern FILE* sqlin;
 int sqlparse(void);
 
@@ -281,16 +286,16 @@ void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<RecordId>& results
 }
 
 
-void filterKeys(const vector<SelCond>& conds, set<int>& results)
+void filterKeys(const vector<SelCond>& conds, set<IndexEntry>& results)
 {
     int key, diff;
-    set<int> temp;
+    set<IndexEntry> temp;
 
-    // scan through all keys
-    for (set<int>::iterator it = results.begin(); it != results.end(); it++) {  
-        key = *it;
+    // scan through all IndexEntrys in results
+    for (set<IndexEntry>::iterator it = results.begin(); it != results.end(); it++) {  
+        key = (*it).key;
     
-        // check the conditions on the key
+        // check the key against every condition
         for (int i = 0; i < conds.size(); i++) {
     
             // compute the difference between the key value and the condition value
@@ -307,10 +312,10 @@ void filterKeys(const vector<SelCond>& conds, set<int>& results)
             }
         }
 
-        // add key to temp set
+        // all conditions are met -- add IndexEntry to temp set
         temp.insert(*it);
 
-        // move to the next key
+        // move to the next IndexEntry
         next_key:;
     }
     
