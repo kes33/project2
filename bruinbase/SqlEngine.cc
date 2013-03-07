@@ -35,7 +35,8 @@ extern FILE* sqlin;
 int sqlparse(void);
 
 void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<IndexEntry>& resultsToCheck);
-void filterKeys(const vector<SelCond>& conds, set<RecordId>& results);
+void filterKeys(const vector<SelCond>& conds, set<IndexEntry>& results);
+bool valueSatisfiesConds(string& value, const vector<SelCond>& conds);
 
 //helper function to compare key conditions (EQ > GT/GE > LT/LE > NE)
 bool compareKeyConds (const SelCond& a, const SelCond& b) {
@@ -74,121 +75,183 @@ RC SqlEngine::run(FILE* commandline)
 
 RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds) {
 
-  RecordFile rf;   // RecordFile containing the table
-  RecordId   rid;  // record cursor for table scanning
+    RecordFile rf;   // RecordFile containing the table
+    RecordId   rid;  // record cursor for table scanning
 
-  RC     rc;
-  int    count;
-  int    diff;
-  bool   indexExists;
+    RC     rc;
+    bool   indexExists;
+    int    key;
+    string value;
+    
 
-
-  //open the table file
-  if ((rc = rf.open(table + ".tbl", 'r')) < 0) {
-     fprintf(stderr, "Error: table %s does not exist\n", table.c_str());
-     return rc;
-  }
-
-  //if conds is empty, scan entire table
-  if (conds.empty()) {
-    cout << "no conditions, calling linear scan" << endl << endl;
-    linearScan(attr, rf, conds);
-    rf.close();
-    return 0;
-  }
-
-  //DOES INDEX EXIST?
-  BTreeIndex index;
-  indexExists = !(index.open(table + ".idx", 'r') < 0);
+    // OPEN FILES
+    // open the table file
+    if ((rc = rf.open(table + ".tbl", 'r')) < 0) {
+        fprintf(stderr, "Error: table %s does not exist\n", table.c_str());
+        return rc;
+    }
 
 
-  //NO, INDEX DOES NOT EXIST -- scan entire table
-  if (!indexExists) {
-    cout << "no index available, calling linear scan" << endl << endl;
-    linearScan(attr, rf, conds);
-    rf.close();
-    return 0;
-  }
+    // open the index file -- if it doesn't exist, perform linearScan
+    BTreeIndex index;
+    if (index.open(table + ".idx", 'r') < 0) {
+        cout << "no index available, calling linear scan" << endl << endl;
+        linearScan(attr, rf, conds);
+        rf.close();
+        return 0;
+    }
+
+
+    // PREPARE SELECT CONDITIONS
+    // separate conds into keyConds (sorted) or valueConds
+    // scan entire table if no conditions
+    if (conds.empty()) {
+        cout << "no conditions, calling linear scan" << endl << endl;
+        linearScan(attr, rf, conds);
+        rf.close();
+        return 0;
+    }
+
+    vector<SelCond> keyConds, valueConds;
+    for (int i = 0; i < conds.size(); i++)
+        if (conds[i].attr == 1)
+            keyConds.push_back(conds[i]);
+        else
+            valueConds.push_back(conds[i]);
+
+    sort(keyConds.begin(), keyConds.end(), compareKeyConds);
+
+    // if keyConds is empty or contains only <> select conditions, scan entire table
+    if (keyConds.empty() || keyConds[0].comp==SelCond::NE) {
+        cout << "calling linear scan" << endl;
+        linearScan(attr, rf, conds);
+        rf.close();
+        return 0;
+    }
 
   
-  //YES, INDEX EXISTS -- use index to find tuples
+    // GET KEYS
+    // get keys that satisfy all key conditions
+    //    first, apply first condition
+    //    then filter those results with remaining conditions
+    set<IndexEntry> resultsToCheck;
+    getRidsFirstCond(keyConds[0], index, resultsToCheck);
     
-  //separate conds into keyConds or valueConds
-  vector<SelCond> keyConds, valueConds;
-  for (int i = 0; i < conds.size(); i++)
-    if (conds[i].attr == 1)
-      keyConds.push_back(conds[i]);
+    if (resultsToCheck.empty()) {
+        cout << "0 tuples found." << endl;
+        rf.close();
+        return 0;
+    }
     else
-      valueConds.push_back(conds[i]);
+        filterKeys(keyConds, resultsToCheck);
 
-  sort(keyConds.begin(), keyConds.end(), compareKeyConds);  // sort keyConds
+
+    // PRINT TUPLES
+    // no valueConds to check -- proceed to print tuples
+    if (valueConds.empty()) {
+        switch (attr) {
+    
+            case 1:    // print key
+                for (set<IndexEntry>::iterator it = resultsToCheck.begin(); it != resultsToCheck.end(); it++)
+                    cout << it->key << endl;
+                break;
+      
+            case 2:    // print value
+                for (set<IndexEntry>::iterator it = resultsToCheck.begin(); it != resultsToCheck.end(); it++) {
+                    rf.read(it->rid, key, value);
+                    cout << value << endl;
+                }
+                break;
+    
+            case 3:    // print key and value
+                for (set<IndexEntry>::iterator it = resultsToCheck.begin(); it != resultsToCheck.end(); it++) {
+                    rf.read(it->rid, key, value);
+                    cout << key << "\t" << value << endl;
+                }
+                break;
+      
+            case 4:    // print count
+                cout << resultsToCheck.size() << endl;
+                break;
+            }
+    }
   
-  //cout << endl << "total conds: " << conds.size() << endl;
-  //cout << "  on key: " << keyConds.size() << endl;
-  //cout << "  on value: " << valueConds.size() << endl << endl;
-
-
-  //if keyConds is empty or contains !=, scan entire table
-  if (keyConds.empty() || keyConds[0].comp==SelCond::NE) {
-    cout << "calling linear scan" << endl;
-    linearScan(attr, rf, conds);
+    // there are value conds -- apply them before printing tuples
+    else {
+        switch (attr) {
+    
+        case 1:    // print key if value satisfies valueConds
+            for (set<IndexEntry>::iterator it = resultsToCheck.begin(); it != resultsToCheck.end(); it++) {
+                rf.read(it->rid, key, value);
+                if (valueSatisfiesConds(value, valueConds))
+                    cout << it->key << endl;
+            }
+            break;
+      
+        case 2:    // print value if it satisfies valueConds
+            for (set<IndexEntry>::iterator it = resultsToCheck.begin(); it != resultsToCheck.end(); it++) {
+                rf.read(it->rid, key, value);
+                if (valueSatisfiesConds(value, valueConds))
+                    cout << value << endl;
+            }
+            break;
+    
+        case 3:    // print key and value if value satisfies valueConds
+            for (set<IndexEntry>::iterator it = resultsToCheck.begin(); it != resultsToCheck.end(); it++) {
+                rf.read(it->rid, key, value);
+                if (valueSatisfiesConds(value, valueConds))
+                    cout << key << "\t" << value << endl;
+            }
+            break;
+      
+        case 4:    // print count of values that satisfy valueConds
+            int count = 0;
+            for (set<IndexEntry>::iterator it = resultsToCheck.begin(); it != resultsToCheck.end(); it++) {
+                rf.read(it->rid, key, value);
+                if (valueSatisfiesConds(value, valueConds))
+                    count++;
+            }
+            cout << count << endl;
+            break;
+        }
+    }
+  
+  
+    // CLEAN UP
     rf.close();
     return 0;
-  }
-
-  
-  // get results under first condition
-  set<IndexEntry> resultsToCheck;
-  getRidsFirstCond(keyConds[0], index, resultsToCheck);
-  cout << endl << "size of result set: " << resultsToCheck.size() << endl << endl;
-    
-  int key;
-  string value;
-  for (set<IndexEntry>::iterator it=resultsToCheck.begin(); it!=resultsToCheck.end(); it++) {
-    cout << "key: " << it->key << " rid: (pid:" << it->rid.pid << ", sid:" << it->rid.sid << ")"<< endl;
-  }
-  return 0;
-
-  //if result set is empty after first set, return
-  if (resultsToCheck.empty()) {
-    cout << "0 tuples found." << endl;
-    rf.close();
-    return 0;
-  }
-    
-    
-    
-    
-//     //iterate through resultsToCheck
-//     set<RecordId>::iterator it;
-//     cout << "rids in resultsToCheck after checking first condition (key ";
-//     switch (keyConds[0].comp) {
-//       case (SelCond::EQ):
-//         cout << "== ";
-//         break;
-//       case (SelCond::GT):
-//         cout << "> ";
-//         break;
-//       case (SelCond::GE):
-//         cout << ">= ";
-//         break;
-//       case (SelCond::LT):
-//         cout << "< ";
-//         break;
-//       case (SelCond::LE):
-//         cout << "<= ";
-//         break;
-//       default:
-//         cout << "<>";
-//     }
-//     cout << " " << keyConds[0].value << ") are: " << endl;
-//     for (it = resultsToCheck.begin(); it != resultsToCheck.end(); it++) {
-//       cout << "(" << it->pid << "," << it->sid << ")" << endl;
-//     }
-// 
-//     rf.close();
-//     return 0;
 }
+
+bool valueSatisfiesConds(string& value, const vector<SelCond>& conds) {
+
+    // check the value against every condition
+    int diff;
+    for (int i = 0; i < conds.size(); i++) {
+
+        // compute the difference between the input value and the condition value
+        diff = strcmp(value.c_str(), conds[i].value);
+
+        // return false if any condition is not met
+        switch (conds[i].comp) {
+            case SelCond::EQ:  if (diff != 0) return false;
+            break;
+            case SelCond::NE:  if (diff == 0) return false;
+            break;
+            case SelCond::GT:  if (diff <= 0) return false;
+            break;
+            case SelCond::LT:  if (diff >= 0) return false;
+            break;
+            case SelCond::GE:  if (diff < 0)  return false;
+            break;
+            case SelCond::LE:  if (diff > 0)  return false;
+            break;
+        }
+    }
+
+    // all conditions are met
+    return true;
+}
+
 
 //finds all of the rid's in the index satisfying the first condition on keys
 void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<IndexEntry>& resultsToCheck) {    
@@ -320,8 +383,14 @@ void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<IndexEntry>& resul
 	}  
 }
 
+
+// filters a given keys with given conditions in place
 void filterKeys(const vector<SelCond>& conds, set<IndexEntry>& results)
 {
+    // return immediately if no conditions to check
+    if (conds.empty())
+      return;
+
     int key, diff;
     set<IndexEntry> temp;
 
@@ -338,11 +407,17 @@ void filterKeys(const vector<SelCond>& conds, set<IndexEntry>& results)
             // skip the key if any condition is not met
             switch (conds[i].comp) {
                 case SelCond::EQ:  if (diff != 0) goto next_key;
+                break;
                 case SelCond::NE:  if (diff == 0) goto next_key;
+                break;
                 case SelCond::GT:  if (diff <= 0) goto next_key;
+                break;
                 case SelCond::LT:  if (diff >= 0) goto next_key;
+                break;
                 case SelCond::GE:  if (diff < 0)  goto next_key;
+                break;
                 case SelCond::LE:  if (diff > 0)  goto next_key;
+                break;
             }
         }
 
@@ -355,7 +430,7 @@ void filterKeys(const vector<SelCond>& conds, set<IndexEntry>& results)
     
     results.swap(temp);
 }
-  
+
 
 RC SqlEngine::linearScan(int attr, RecordFile &rf, const vector<SelCond>& cond)
 {
