@@ -26,14 +26,19 @@ typedef struct {
   RecordId  rid;  // page number. the first page is 0
 } IndexEntry;
 
+
+bool operator<(const IndexEntry& a, const IndexEntry& b) {
+	return (a.rid<b.rid);
+}
+
 extern FILE* sqlin;
 int sqlparse(void);
 
-void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<RecordId>& resultsToCheck);
+void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<IndexEntry>& resultsToCheck);
 void filterKeys(const vector<SelCond>& conds, set<RecordId>& results);
 
 //helper function to compare key conditions (EQ > GT/GE > LT/LE > NE)
-bool compareKeyConds (SelCond a, SelCond b) {
+bool compareKeyConds (const SelCond& a, const SelCond& b) {
   switch (a.comp) {
     case SelCond::EQ:
       return true;
@@ -118,9 +123,9 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
 
   sort(keyConds.begin(), keyConds.end(), compareKeyConds);  // sort keyConds
   
-  cout << endl << "total conds: " << conds.size() << endl;
-  cout << "  on key: " << keyConds.size() << endl;
-  cout << "  on value: " << valueConds.size() << endl << endl;
+  //cout << endl << "total conds: " << conds.size() << endl;
+  //cout << "  on key: " << keyConds.size() << endl;
+  //cout << "  on value: " << valueConds.size() << endl << endl;
 
 
   //if keyConds is empty or contains !=, scan entire table
@@ -133,15 +138,14 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
 
   
   // get results under first condition
-  set<RecordId> resultsToCheck;
+  set<IndexEntry> resultsToCheck;
   getRidsFirstCond(keyConds[0], index, resultsToCheck);
   cout << endl << "size of result set: " << resultsToCheck.size() << endl << endl;
     
   int key;
   string value;
-  for (set<RecordId>::iterator it = resultsToCheck.begin(); it != resultsToCheck.end(); it++) {
-    rf.read(*it, key, value);
-    cout << "key: " << key << " value: " << value << endl;
+  for (set<IndexEntry>::iterator it=resultsToCheck.begin(); it!=resultsToCheck.end(); it++) {
+    cout << "key: " << it->key << " rid: (pid:" << it->rid.pid << ", sid:" << it->rid.sid << ")"<< endl;
   }
   return 0;
 
@@ -187,10 +191,13 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
 }
 
 //finds all of the rid's in the index satisfying the first condition on keys
-void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<RecordId>& resultsToCheck) {    
+void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<IndexEntry>& resultsToCheck) {    
     IndexCursor cursor;
     RecordId rid;
     int keyInIndex;
+	IndexEntry idxEntry;
+	bool continueLoop;
+	RC error;
     int valueToComp = atoi(condition.value);
     
     switch(condition.comp) {
@@ -207,13 +214,15 @@ void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<RecordId>& results
         }
         if (valueToComp == keyInIndex){
           cout << "found value for key " << valueToComp << " in index, adding rid to resultsToCheck" << endl;
-          resultsToCheck.insert(rid);
+          idxEntry.rid = rid;
+		  idxEntry.key = keyInIndex;
+		  resultsToCheck.insert(idxEntry);
         }
         else {
           cout << "in comparing for equality, key not found in index" << endl;
           return;
         }
-        break;  
+        return;  
   
       //Greater than or greater than or equal condition
       case (SelCond::GT):
@@ -223,18 +232,32 @@ void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<RecordId>& results
           cerr << "no key in index found with key > or >= " << valueToComp << endl;
           return;
         }
-        idx.readForward(cursor, keyInIndex, rid);
+        
+		//check first value for GE or GT condition
+		error = idx.readForward(cursor, keyInIndex, rid);
         if ((condition.comp==SelCond::GE && keyInIndex==valueToComp) || (condition.comp==SelCond::GT && keyInIndex>valueToComp)){ 
           cout << "inserting into resultsToCheck rid (" << rid.pid << "," << rid.sid <<") with key " << keyInIndex << endl;
-          resultsToCheck.insert(rid);
+          idxEntry.rid = rid;
+          idxEntry.key = keyInIndex;
+		  resultsToCheck.insert(idxEntry);
         }
         
-        //read through remaining rid's in index, with keys greater than current location
-        while ((idx.readForward(cursor, keyInIndex, rid))==0) {
-          cout << "inserting into resultsToCheck rid (" << rid.pid << "," << rid.sid <<") with key " << keyInIndex << endl;
-          resultsToCheck.insert(rid);
+		if (error !=0 )   //the retrieved key was the last one in the tree - we're done
+			return;
+
+		//more to read - read through remaining rid's in index, with keys greater than current location
+        continueLoop = true;
+		while (continueLoop) {
+				error = idx.readForward(cursor, keyInIndex, rid); 
+          		cout << "inserting into resultsToCheck rid (" << rid.pid << "," << rid.sid <<") with key " << keyInIndex << endl;
+          		idxEntry.rid = rid;
+          		idxEntry.key = keyInIndex;
+		 	 	resultsToCheck.insert(idxEntry);
+				if (error != 0)
+					continueLoop = false;
         }
-        break;
+        return;
+
 
       //Less than or less than or equal condition
       case (SelCond::LT):
@@ -250,13 +273,21 @@ void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<RecordId>& results
         cout << "cursor of start is (pageId: " << cursor.pid << ", eid: " << cursor.eid << ")" << endl;
 
         //look for stopping position
-                if (idx.locate(valueToComp, stoppingCursor) != 0) {
-                    cout << "all keys in index less than " << valueToComp << " - will add all rid's to resultsToCheck" << endl;
-                   while (idx.readForward(cursor, keyInIndex, rid)==0) {
-            cout << "inserting into resultsToCheck rid (" << rid.pid << "," << rid.sid <<") with key " << keyInIndex << endl;
-            resultsToCheck.insert(rid);
-          }
+        if (idx.locate(valueToComp, stoppingCursor) != 0) {
+           	cout << "all keys in index less than " << valueToComp << " - will add all rid's to resultsToCheck" << endl;
+            continueLoop = true;
+			while (continueLoop) {
+				error = idx.readForward(cursor, keyInIndex, rid);
+            	cout << "inserting into resultsToCheck rid (" << rid.pid << "," << rid.sid <<") with key " << keyInIndex << endl;
+            	idxEntry.rid = rid;
+				idxEntry.key = keyInIndex;
+				resultsToCheck.insert(idxEntry);
+				if (error != 0)
+					continueLoop = false;
+          	}
+			return;
         }
+
         else {
           cout << "reading all keys up until stopping cursor: (PageID: " << stoppingCursor.pid << ", eid: " << stoppingCursor.eid << ")" << endl; 
           //read all keys up until stopping point
@@ -267,24 +298,27 @@ void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<RecordId>& results
             //cout << "reading forward - reading cursor (pageId: " << cursor.pid << ", eid: " << cursor.eid << ")" << endl;
             if (cursor.pid!=stoppingCursor.pid || cursor.eid!=stoppingCursor.eid) {
               cout << "inserting into resultsToCheck rid (" << rid.pid << "," << rid.sid <<") with key " << keyInIndex << endl;
-              resultsToCheck.insert(rid);
+              idxEntry.rid = rid;
+	 		  idxEntry.key = keyInIndex;
+			  resultsToCheck.insert(idxEntry);
               cursor.pid = nextCursor.pid;
               cursor.eid = nextCursor.eid;
             }
             else {
               if (condition.comp==SelCond::LE and keyInIndex==valueToComp) {
                 cout << "condition is LE, and key with value " << valueToComp << " is in index - including in resultsToCheck" << endl;
-                resultsToCheck.insert(rid);       
-              }  
-              break;
-            }
-          }
-        }  
-        break;
-    }    
-  
-}
+                idxEntry.rid = rid;
+				idxEntry.key = keyInIndex;
+				resultsToCheck.insert(idxEntry);       
+              }
+   			  break;
+			}
+		  }
+		return;
+	   }
 
+	}  
+}
 
 void filterKeys(const vector<SelCond>& conds, set<IndexEntry>& results)
 {
