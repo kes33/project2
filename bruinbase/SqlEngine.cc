@@ -87,7 +87,7 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
     // OPEN FILES
     // open the table file
     if ((rc = rf.open(table + ".tbl", 'r')) < 0) {
-        fprintf(stderr, "Error: table %s does not exist\n", table.c_str());
+        //fprintf(stderr, "Error: table %s does not exist\n", table.c_str());
         return rc;
     }
 
@@ -95,7 +95,7 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
     // open the index file -- if it doesn't exist, perform linearScan
     BTreeIndex index;
     if (index.open(table + ".idx", 'r') < 0) {
-        cout << "no index available, calling linear scan" << endl << endl;
+        //cout << "no index available, calling linear scan" << endl << endl;
         linearScan(attr, rf, conds);
         rf.close();
         return 0;
@@ -106,7 +106,7 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
     // separate conds into keyConds (sorted) or valueConds
     // scan entire table if no conditions
     if (conds.empty()) {
-        cout << "no conditions, calling linear scan" << endl << endl;
+        //cout << "no conditions, calling linear scan" << endl << endl;
         linearScan(attr, rf, conds);
         rf.close();
         return 0;
@@ -123,7 +123,7 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
 
     // if keyConds is empty or contains only <> select conditions, scan entire table
     if (keyConds.empty() || keyConds[0].comp==SelCond::NE) {
-        cout << "calling linear scan" << endl;
+        //cout << "calling linear scan" << endl;
         linearScan(attr, rf, conds);
         rf.close();
         return 0;
@@ -138,7 +138,7 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
     getRidsFirstCond(keyConds[0], index, resultsToCheck);
     
     if (resultsToCheck.empty()) {
-        cout << "0 tuples found." << endl;
+        //cout << "0 tuples found." << endl;
         rf.close();
         return 0;
     }
@@ -266,23 +266,23 @@ void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<IndexEntry>& resul
     switch(condition.comp) {
       //equality condition - look up directly in index
       case (SelCond::EQ):
-        cout << "checking on equality of key with " << valueToComp << endl;
+        //cout << "checking on equality of key with " << valueToComp << endl;
         if (idx.locate(valueToComp, cursor)!=0) {
-          cout << "on equality check, locate failed to find key greater than or equal to " << valueToComp << endl;
+          //cout << "on equality check, locate failed to find key greater than or equal to " << valueToComp << endl;
           return;
         }
         if (idx.readForward(cursor, keyInIndex, rid)!=0) {
-          cout << "readForward in check on equality failed" << endl;
+          //cout << "readForward in check on equality failed" << endl;
           return;
         }
         if (valueToComp == keyInIndex){
-          cout << "found value for key " << valueToComp << " in index, adding rid to resultsToCheck" << endl;
+          //cout << "found value for key " << valueToComp << " in index, adding rid to resultsToCheck" << endl;
           idxEntry.rid = rid;
 		  idxEntry.key = keyInIndex;
 		  resultsToCheck.insert(idxEntry);
         }
         else {
-          cout << "in comparing for equality, key not found in index" << endl;
+          //cout << "in comparing for equality, key not found in index" << endl;
           return;
         }
         return;  
@@ -290,16 +290,16 @@ void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<IndexEntry>& resul
       //Greater than or greater than or equal condition
       case (SelCond::GT):
       case (SelCond::GE):
-        cout << "checking on GT or GE condition of key compared to " << valueToComp << endl;
+        //cout << "checking on GT or GE condition of key compared to " << valueToComp << endl;
         if (idx.locate(valueToComp, cursor) != 0) {
-          cerr << "no key in index found with key > or >= " << valueToComp << endl;
+          //cerr << "no key in index found with key > or >= " << valueToComp << endl;
           return;
         }
         
 		//check first value for GE or GT condition
 		error = idx.readForward(cursor, keyInIndex, rid);
         if ((condition.comp==SelCond::GE && keyInIndex==valueToComp) || (condition.comp==SelCond::GT && keyInIndex>valueToComp)){ 
-          cout << "inserting into resultsToCheck rid (" << rid.pid << "," << rid.sid <<") with key " << keyInIndex << endl;
+          //cout << "inserting into resultsToCheck rid (" << rid.pid << "," << rid.sid <<") with key " << keyInIndex << endl;
           idxEntry.rid = rid;
           idxEntry.key = keyInIndex;
 		  resultsToCheck.insert(idxEntry);
@@ -312,7 +312,7 @@ void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<IndexEntry>& resul
         continueLoop = true;
 		while (continueLoop) {
 				error = idx.readForward(cursor, keyInIndex, rid); 
-          		cout << "inserting into resultsToCheck rid (" << rid.pid << "," << rid.sid <<") with key " << keyInIndex << endl;
+          		//cout << "inserting into resultsToCheck rid (" << rid.pid << "," << rid.sid <<") with key " << keyInIndex << endl;
           		idxEntry.rid = rid;
           		idxEntry.key = keyInIndex;
 		 	 	resultsToCheck.insert(idxEntry);
@@ -325,23 +325,23 @@ void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<IndexEntry>& resul
       //Less than or less than or equal condition
       case (SelCond::LT):
       case (SelCond::LE):
-        cout << "checking on LT or LE condition on key compared to " << valueToComp << endl;
+        //cout << "checking on LT or LE condition on key compared to " << valueToComp << endl;
         IndexCursor stoppingCursor;
                   
         //looking for first position in index
         if (idx.locate(0, cursor) != 0) {
-          cerr << "no \"smallest\" key found in index" << endl;
+          //cerr << "no \"smallest\" key found in index" << endl;
           return;
         }
-        cout << "cursor of start is (pageId: " << cursor.pid << ", eid: " << cursor.eid << ")" << endl;
+        //cout << "cursor of start is (pageId: " << cursor.pid << ", eid: " << cursor.eid << ")" << endl;
 
         //look for stopping position
         if (idx.locate(valueToComp, stoppingCursor) != 0) {
-           	cout << "all keys in index less than " << valueToComp << " - will add all rid's to resultsToCheck" << endl;
+           	//cout << "all keys in index less than " << valueToComp << " - will add all rid's to resultsToCheck" << endl;
             continueLoop = true;
 			while (continueLoop) {
 				error = idx.readForward(cursor, keyInIndex, rid);
-            	cout << "inserting into resultsToCheck rid (" << rid.pid << "," << rid.sid <<") with key " << keyInIndex << endl;
+            	//cout << "inserting into resultsToCheck rid (" << rid.pid << "," << rid.sid <<") with key " << keyInIndex << endl;
             	idxEntry.rid = rid;
 				idxEntry.key = keyInIndex;
 				resultsToCheck.insert(idxEntry);
@@ -352,7 +352,7 @@ void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<IndexEntry>& resul
         }
 
         else {
-          cout << "reading all keys up until stopping cursor: (PageID: " << stoppingCursor.pid << ", eid: " << stoppingCursor.eid << ")" << endl; 
+          //cout << "reading all keys up until stopping cursor: (PageID: " << stoppingCursor.pid << ", eid: " << stoppingCursor.eid << ")" << endl; 
           //read all keys up until stopping point
           IndexCursor nextCursor;
           nextCursor.pid = cursor.pid;
@@ -360,7 +360,7 @@ void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<IndexEntry>& resul
           while (idx.readForward(nextCursor, keyInIndex, rid)==0){
             //cout << "reading forward - reading cursor (pageId: " << cursor.pid << ", eid: " << cursor.eid << ")" << endl;
             if (cursor.pid!=stoppingCursor.pid || cursor.eid!=stoppingCursor.eid) {
-              cout << "inserting into resultsToCheck rid (" << rid.pid << "," << rid.sid <<") with key " << keyInIndex << endl;
+              //cout << "inserting into resultsToCheck rid (" << rid.pid << "," << rid.sid <<") with key " << keyInIndex << endl;
               idxEntry.rid = rid;
 	 		  idxEntry.key = keyInIndex;
 			  resultsToCheck.insert(idxEntry);
@@ -369,7 +369,7 @@ void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<IndexEntry>& resul
             }
             else {
               if (condition.comp==SelCond::LE and keyInIndex==valueToComp) {
-                cout << "condition is LE, and key with value " << valueToComp << " is in index - including in resultsToCheck" << endl;
+                //cout << "condition is LE, and key with value " << valueToComp << " is in index - including in resultsToCheck" << endl;
                 idxEntry.rid = rid;
 				idxEntry.key = keyInIndex;
 				resultsToCheck.insert(idxEntry);       
@@ -448,7 +448,7 @@ RC SqlEngine::linearScan(int attr, RecordFile &rf, const vector<SelCond>& cond)
   while (rid < rf.endRid()) {
     // read the tuple
     if ((rc = rf.read(rid, key, value)) < 0) {
-      fprintf(stderr, "Error: while reading a tuple from table in linearScan\n");
+      //fprintf(stderr, "Error: while reading a tuple from table in linearScan\n");
       goto exit_select;
     }
 
@@ -529,7 +529,7 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
   ifstream loadStream;
   loadStream.open(loadfile.c_str());
   if (loadStream.fail()) {
-    cerr << "Error opening loadfile." << endl;
+    //cerr << "Error opening loadfile." << endl;
     return(RC_FILE_OPEN_FAILED);
   }
 
@@ -544,7 +544,7 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
   //open RecordFile - if file does not already exist, is created 
   RecordFile records;
   if (records.open(tableName, 'w')!=0) {
-    cerr << "Error opening record file." << endl;
+    //cerr << "Error opening record file." << endl;
     return(RC_FILE_OPEN_FAILED);
   }
   
@@ -553,7 +553,7 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
   BTreeIndex idx;
   if (index) {
     if (idx.open(indexName, 'w') != 0) {
-      cerr << "Error opening index file." << endl;
+      //cerr << "Error opening index file." << endl;
       return (RC_FILE_OPEN_FAILED);
     }
   }
@@ -569,20 +569,20 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
 
     //parse load line:
     if (parseLoadLine(recordLine, key, value)!=0) {
-      cerr << "Error parsing load line." <<endl ;
+      //cerr << "Error parsing load line." <<endl ;
       return(RC_INVALID_FILE_FORMAT);
     }  
     
     //store in recordfile:
     if (records.append(key, value, rid)!=0) {
-      cerr<< "Error appending to records file." <<endl;
+      //cerr<< "Error appending to records file." <<endl;
       return(RC_FILE_WRITE_FAILED);
     }
  
     //store in index if index is selected
     if (index) {
       if (idx.insert(key, rid)!=0) {
-        cerr << "Error inserting value in index in SqlEngine.load()" << endl;
+        //cerr << "Error inserting value in index in SqlEngine.load()" << endl;
         return(RC_FILE_WRITE_FAILED);
       }
     }  

@@ -16,7 +16,7 @@ RC BTLeafNode::read(PageId pid, const PageFile& pf)
 	memset(buffer, '\0', PageFile::PAGE_SIZE);
 	 
 	if (pf.read(pid, (void*)buffer) != 0) {
-		cerr << "Error on BTLeafNode read from PageFile" << endl;
+		//cerr << "Error on BTLeafNode read from PageFile" << endl;
 		exit(RC_FILE_READ_FAILED);
 	}
 
@@ -34,7 +34,7 @@ RC BTLeafNode::write(PageId pid, PageFile& pf)
 	RC error;
 	error = pf.write(pid, buffer);
 	if (error !=0) {
-		cerr << "Error on writing BTLeafNode to PageFile" << endl; 
+		//cerr << "Error on writing BTLeafNode to PageFile" << endl; 
 		return(RC_FILE_WRITE_FAILED);
 	}
 
@@ -68,7 +68,7 @@ RC BTLeafNode::insert(int key, const RecordId& rid)
 	int numKeys = getKeyCount();
 
 	if (numKeys == NUMNODEPTRS-1){
-		cerr << "Node is full - cannot insert" << endl;
+		//cerr << "Node is full - cannot insert" << endl;
 		return RC_NODE_FULL;
 	}
 
@@ -197,13 +197,13 @@ RC BTLeafNode::readEntry(int eid, int& key, RecordId& rid)
 	
 	//copy RecordId into rid
 	memcpy((void*)&rid, (void*)entry, sizeof(RecordId));
-	cout << "in readEntry, eid of " << eid << " is (" << rid.pid << ", " << rid.sid << ") | ";
+	//cout << "in readEntry, eid of " << eid << " is (" << rid.pid << ", " << rid.sid << ") | ";
 
 	entry += sizeof(RecordId);
 
 	//copy key 
 	key = *(int*)entry;
-	cout << "key:" << key << endl;
+	//cout << "key:" << key << endl;
 	
 	return 0; }
 
@@ -262,17 +262,17 @@ void BTLeafNode::printNode() {
 
 	//check if node empty
 	if (keyCount == 0) {
-		cout << "Node is empty." << endl;
+		//cout << "Node is empty." << endl;
 		return;
 	}
 
 	else {
-		cout << "There are " << keyCount << " keys in the node." << endl;
+		//cout << "There are " << keyCount << " keys in the node." << endl;
 		for (count = 0; count < keyCount; count++) {
-			cout << "rid:(" << (ptr->rid.pid) << "," << (ptr->rid.sid) << ") | key: " << (ptr->key) << endl;
+			//cout << "rid:(" << (ptr->rid.pid) << "," << (ptr->rid.sid) << ") | key: " << (ptr->key) << endl;
 			ptr++;
 		}
-		cout << "pageid: " << *(PageId*)ptr << endl;	
+		//cout << "pageid: " << *(PageId*)ptr << endl;	
 	}
 }
 
@@ -376,22 +376,22 @@ RC BTLeafNode::insertInBuffer(int key, const RecordId& rid) {
 //     *test = 5;
 // }
 // 
- void BTNonLeafNode::printAllValues() {
-     int * index = buffer;
- 
-     cout << "PRINTING NON-LEAF NODE DATA"          << endl;
-     cout << "  member variables: "                 << endl;
-     cout << "    keyCount: " << keyCount           << endl;
-     cout << "  buffer contents: "                  << endl;
-     cout << "    Count: " << *(index)              << endl;
-     cout << "    Key: -- \tPID: " << *(++index)    << endl;
-     
-     int count = 0;
-     while (count++ < keyCount) {
-        cout << "    Key: " << *(++index);
-        cout << "\tPID: " << *(++index) << endl;
-    }
- }
+// void BTNonLeafNode::printAllValues() {
+//     int * index = buffer;
+// 
+//     cout << "PRINTING NON-LEAF NODE DATA"          << endl;
+//     cout << "  member variables: "                 << endl;
+//     cout << "    keyCount: " << keyCount           << endl;
+//     cout << "  buffer contents: "                  << endl;
+//     cout << "    Count: " << *(index)              << endl;
+//     cout << "    Key: -- \tPID: " << *(++index)    << endl;
+//     
+//     int count = 0;
+//     while (count++ < keyCount) {
+//        cout << "    Key: " << *(++index);
+//        cout << "\tPID: " << *(++index) << endl;
+//    }
+// }
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
@@ -445,7 +445,7 @@ RC BTNonLeafNode::insert(int key, PageId pid)
 {
     // check if node has room to add key/pid pair
     if (getKeyCount() == KEYS_PER_NODE) {
-        cout << "BTNonLeafNode.insert(): error adding (key=" << key << ",pid=" << pid << ") to node; node full" << endl;
+        //cout << "BTNonLeafNode.insert(): error adding (key=" << key << ",pid=" << pid << ") to node; node full" << endl;
         return RC_NODE_FULL;
     }
 
@@ -507,8 +507,8 @@ RC BTNonLeafNode::insertAndSplit(int key, PageId pid, BTNonLeafNode& sibling, in
     // insert (key, pid) pair into this node
     insertKey(key, pid);
     
-    cout << "BTNonLeafNode.insertAndSplit: (key,pid) (" << key << "," << pid << ") inserted, printing all values before split" << endl;
-    printAllValues();
+    //cout << "BTNonLeafNode.insertAndSplit: (key,pid) (" << key << "," << pid << ") inserted, printing all values before split" << endl;
+    //printAllValues();
     
     // update key counts
     keyCount = keyCount / 2;
