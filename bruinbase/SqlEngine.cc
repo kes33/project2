@@ -112,7 +112,6 @@ RC SqlEngine::run(FILE* commandline)
 RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds) {
 
     RecordFile rf;   // RecordFile containing the table
-    RecordId   rid;  // record cursor for table scanning
 
     RC     rc;
     bool   indexExists;
@@ -147,7 +146,8 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
         if (attr == 2 || attr == 3) {  // value or *	
 		    //cout << "no conditions, calling linear scan" << endl << endl;
             linearScan(attr, rf, conds);
-            rf.close();
+            index.close();
+			rf.close();
             return 0;
         }
         else {
@@ -173,7 +173,8 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
     if (keyConds.empty() || keyConds[0].comp == SelCond::NE) {
         //cout << "calling linear scan" << endl;
         linearScan(attr, rf, conds);
-        rf.close();
+        index.close();
+		rf.close();
         return 0;
     }
  
@@ -224,7 +225,8 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
              lowerBound.comp == SelCond::GT &&
              upperBound.comp == SelCond::LT)) {
             //cout << "0 tuples found" << endl;
-            rf.close();
+            index.close();
+			rf.close();
             return 0;
         }
         
@@ -249,7 +251,8 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
         // if no such keys, return
         if (resultsToCheck.empty()) {
             cout << "0 tuples found." << endl;
-            rf.close();
+            index.close();
+			rf.close();
             return 0;
         }
         
@@ -333,7 +336,9 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
   
   
     // CLEAN UP
-    rf.close();
+    //close the table file and return
+    index.close();
+	rf.close();
     return 0;
 }
     
@@ -922,7 +927,7 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
     idx.close();
   records.close();
   loadStream.close();
-    return 0;
+  return 0;
 }
 
 RC SqlEngine::parseLoadLine(const string& line, int& key, string& value)
