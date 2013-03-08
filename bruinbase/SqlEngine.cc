@@ -37,7 +37,7 @@ int sqlparse(void);
 void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<IndexEntry>& resultsToCheck);
 void filterKeys(const vector<SelCond>& conds, set<IndexEntry>& results);
 bool valueSatisfiesConds(string& value, const vector<SelCond>& conds);
-void getRidsInRange(SelCond lowerBound, SelCond upperBound, BTreeIndex& idx, set<IndexEntry>& resultsToCheck);
+void getRidsInRange(SelCond& lowerBound, SelCond& upperBound, BTreeIndex& idx, set<IndexEntry>& resultsToCheck);
 
 //helper function to compare key conditions (EQ > GT/GE > LT/LE > NE)
 bool compareKeyConds (const SelCond& a, const SelCond& b) {
@@ -410,6 +410,100 @@ void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<IndexEntry>& resul
 	}  
 }
 
+void getRidsInRange(SelCond& lowerBound, SelCond& upperBound, BTreeIndex& idx, set<IndexEntry>& resultsToCheck){
+    IndexCursor cursor;
+	IndexCursor nextCursor;
+    RecordId rid;
+    int keyInIndex;
+    IndexEntry idxEntry;
+    bool continueLoop;
+	RC error;
+	bool firstIteration;
+    int valueToCompLow = atoi(lowerBound.value);
+	int valueToCompHigh = atoi(upperBound.value);
+
+	//find cursor for lower bound
+	error = idx.locate(valueToCompLow, cursor);
+	
+	//if error - lower bound is too high for index, no tuples to return
+	if (error != 0) {
+		cout << "lower bound is too high, no tuples to return " << endl;
+		return;
+	}
+
+	//find cursor for upper bound
+	IndexCursor stoppingCursor;
+	error = idx.locate(valueToCompHigh, stoppingCursor);
+	
+	//if error - upper bound exceeds values in index - will read forward to the end
+	if (error !=0) {
+		continueLoop = true;
+		firstIteration = true;
+        while (continueLoop) {
+           error = idx.readForward(cursor, keyInIndex, rid);
+           //cout << "inserting into resultsToCheck rid (" << rid.pid << "," << rid.sid <<") with key " << keyInIndex << endl;
+           if (firstIteration) {
+                if ((lowerBound.comp==SelCond::GE && keyInIndex>=valueToCompLow) || (lowerBound.comp==SelCond::GT && keyInIndex>valueToCompLow)){
+                    idxEntry.rid = rid;
+                    idxEntry.key = keyInIndex;
+                    resultsToCheck.insert(idxEntry);            
+                }
+                firstIteration = false;
+           }
+           else {
+                idxEntry.rid = rid;
+                idxEntry.key = keyInIndex;
+                resultsToCheck.insert(idxEntry);
+           }
+		   if (error !=0)
+				continueLoop = false;
+		}
+		return;
+	}
+
+	//otherwise, will read up until stopping cursor
+ 	else {		
+		continueLoop = true;
+		firstIteration = true;
+		nextCursor.eid = cursor.eid;
+		nextCursor.pid = cursor.pid;
+
+		//loop through all values - if first iteration, check whether include lower bound
+    	while (continueLoop) {
+	    	//read in value
+       		error = idx.readForward(nextCursor, keyInIndex, rid);
+
+			//on first iteration, consider whether to include lower bound or not
+			if (firstIteration && cursor.pid != stoppingCursor.pid || cursor.eid != stoppingCursor.eid) {
+                if ((lowerBound.comp==SelCond::GE && keyInIndex>=valueToCompLow) || (lowerBound.comp==SelCond::GT && keyInIndex>valueToCompLow)){
+                    idxEntry.rid = rid;
+                    idxEntry.key = keyInIndex;
+                    resultsToCheck.insert(idxEntry);
+                }
+                firstIteration = false;
+           	}
+           	else if (cursor.pid!=stoppingCursor.pid || cursor.eid!=stoppingCursor.eid) {
+              	//cout << "inserting into resultsToCheck rid (" << rid.pid << "," << rid.sid <<") with key " << keyInIndex << endl;
+              		idxEntry.rid = rid;
+              		idxEntry.key = keyInIndex;
+              		resultsToCheck.insert(idxEntry);
+              		cursor.pid = nextCursor.pid;
+              		cursor.eid = nextCursor.eid;
+			}
+		
+			//have reached stopping condition
+			else {
+				if (upperBound.comp==SelCond::LE and keyInIndex==valueToCompHigh) {
+                //cout << "condition is LE, and key with value " << valueToComp << " is in index - including in resultsToCheck" << endl;
+        	        idxEntry.rid = rid;
+            	    idxEntry.key = keyInIndex;
+                	resultsToCheck.insert(idxEntry);
+				}
+				continueLoop = false;
+			}
+		}
+    }
+}
 
 // filters a given keys with given conditions in place
 void filterKeys(const vector<SelCond>& conds, set<IndexEntry>& results)
