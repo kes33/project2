@@ -569,25 +569,25 @@ RC BTreeIndex::locate(int searchKey, IndexCursor& cursor) {
 RC BTreeIndex::readForward(IndexCursor& cursor, int& key, RecordId& rid) {
     RC rc;
     BTLeafNode node;
-    
+    cout << "readForward: starting function" << endl;
     // read the page given by cursor into memory
-    //cout << "readForward: reading page into memory" << endl;
+    cout << "readForward: reading page into memory" << endl;
     if ((rc = node.read(cursor.pid, pf)) != 0)
         return rc;
     
     //node.printNode();
     
     // read entry and store key and rid
-    //cout << "readForward: reading entry from page" << endl;
+    cout << "readForward: reading entry from page" << endl;
     if ((rc = node.readEntry(cursor.eid, key, rid)) != 0)
         return rc;
     
-	//cout << "readForward: rid of " << cursor.eid << " is (" << rid.pid << ", " << rid.sid << ")" << endl;
+	cout << "readForward: rid of " << cursor.eid << " is (" << rid.pid << ", " << rid.sid << ")" << endl;
     
     // update cursor
-    //cout << "readForward: updating cursor to point to next entry" << endl;
+    cout << "readForward: updating cursor to point to next entry" << endl;
     if (cursor.eid == node.getKeyCount() - 1) {
-        //cout << "readForward: cursor is at last key, setting pid to next node ptr" << endl;
+        cout << "readForward: cursor is at last key, setting pid to next node ptr" << endl;
 
         cursor.eid = 0;
         cursor.pid = (int) node.getNextNodePtr();
@@ -597,9 +597,10 @@ RC BTreeIndex::readForward(IndexCursor& cursor, int& key, RecordId& rid) {
             return RC_END_OF_TREE;
     }
     else {
-        //cout << "readForward: incrementing cursor" << endl;
+        cout << "readForward: incrementing cursor" << endl;
         cursor.eid++;
     }
+    cout << "readForward: done with function" << endl;
     return 0;
 }
 

@@ -16,7 +16,7 @@ RC BTLeafNode::read(PageId pid, const PageFile& pf)
 	memset(buffer, '\0', PageFile::PAGE_SIZE);
 	 
 	if (pf.read(pid, (void*)buffer) != 0) {
-		//cerr << "Error on BTLeafNode read from PageFile" << endl;
+		cerr << "Error on BTLeafNode read from PageFile" << endl;
 		exit(RC_FILE_READ_FAILED);
 	}
 
