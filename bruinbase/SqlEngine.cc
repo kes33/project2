@@ -165,7 +165,7 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
             keyConds.push_back(conds[i]);
         else
             valueConds.push_back(conds[i]);
-    cout << "beginning sort" << endl;
+    //cout << "beginning sort" << endl;
     sort(keyConds.begin(), keyConds.end(), compareKeyConds);
     
 
@@ -176,7 +176,8 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
         rf.close();
         return 0;
     }
-  
+ 
+/* 
     for (int i = 0; i < keyConds.size(); i++) {
         cout << i << " key ";
         switch (keyConds[i].comp) {
@@ -189,15 +190,16 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
         }
         cout << " " << keyConds[i].value << endl;
     }
-    
+*/    
     // filter keyConds and obtain range of keys to check (if it exists)
     set<IndexEntry> resultsToCheck;
     SelCond lowerBound, upperBound;
     
-    cout << "select: testing1" << endl;
+    //cout << "select: testing1" << endl;
     bool rangeExists = filterConds(keyConds, lowerBound, upperBound);
-    cout << "select: testing2" << endl;
+    //cout << "select: testing2" << endl;
     
+/*
     for (int i = 0; i < keyConds.size(); i++) {
         cout << i << " key ";
         switch (keyConds[i].comp) {
@@ -211,9 +213,9 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
         cout << " " << keyConds[i].value << endl;
     }
 
-
+*/
     if (rangeExists) {
-        cout << "select: range exists" << endl;
+        //cout << "select: range exists" << endl;
         // if invalid range, return 0 tuples
         // case 1: lower bound > upper bound OR
         // case 2: lower bound < key < lower bound+1    e.g. 14 < key < 15
@@ -221,28 +223,28 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
              (atoi(lowerBound.value)+1 == atoi(upperBound.value) &&
              lowerBound.comp == SelCond::GT &&
              upperBound.comp == SelCond::LT)) {
-            cout << "0 tuples found" << endl;
+            //cout << "0 tuples found" << endl;
             rf.close();
             return 0;
         }
         
         // valid range
         else {
-            cout << "select: valid range" << endl;
-            cout << "select: starting getRidsInRange" << endl;
+            //cout << "select: valid range" << endl;
+            //cout << "select: starting getRidsInRange" << endl;
             getRidsInRange(lowerBound, upperBound, index, resultsToCheck);
-            cout << "select: done with getRidsInRange" << endl;
-            cout << "select: # returned keys: " << resultsToCheck.size() << endl; 
+            //cout << "select: done with getRidsInRange" << endl;
+            //cout << "select: # returned keys: " << resultsToCheck.size() << endl; 
         }
     }
     
     else {
-        cout << "select: range doesn't exist" << endl;
+        //cout << "select: range doesn't exist" << endl;
         // get keys that satisfy first condition
-        cout << "select: starting getRidsFirstCond" << endl;
+        //cout << "select: starting getRidsFirstCond" << endl;
         getRidsFirstCond(keyConds[0], index, resultsToCheck);
-        cout << "select: done with getRidsFirstCond" << endl;
-        cout << "select: # returned keys: " << resultsToCheck.size() << endl; 
+        //cout << "select: done with getRidsFirstCond" << endl;
+        //cout << "select: # returned keys: " << resultsToCheck.size() << endl; 
     
         // if no such keys, return
         if (resultsToCheck.empty()) {
@@ -252,10 +254,10 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
         }
         
         // filter keys using remaining conditions
-        cout << "select: starting filterKeys" << endl;
+        //cout << "select: starting filterKeys" << endl;
         filterKeys(keyConds, resultsToCheck);
-        cout << "select: done with filterKeys" << endl;
-        cout << "select: # returned keys after filter: " << resultsToCheck.size() << endl; 
+        //cout << "select: done with filterKeys" << endl;
+        //cout << "select: # returned keys after filter: " << resultsToCheck.size() << endl; 
     }
 
 
@@ -344,12 +346,12 @@ bool filterConds(vector<SelCond>& conds, SelCond& lowerBound, SelCond& upperBoun
     
     bool rangeExists = false;
     
-    cout << "filterConds: testing1" << endl;
+    //cout << "filterConds: testing1" << endl;
     // check if range exists by attempting to get lower and upper bounds
     bool lowerBoundFound = false;
     bool upperBoundFound = false;
 
-    cout << "filterConds: testing2" << endl;    
+    //cout << "filterConds: testing2" << endl;    
     for (int i = 0; i < conds.size() && (!lowerBoundFound || !upperBoundFound); i++)
         if (!lowerBoundFound && (conds[i].comp == SelCond::GT || conds[i].comp == SelCond::GE)) {
             lowerTemp = conds[i];
@@ -361,10 +363,10 @@ bool filterConds(vector<SelCond>& conds, SelCond& lowerBound, SelCond& upperBoun
         }
     rangeExists = lowerBoundFound && upperBoundFound;
     
-    cout << "filterConds: testing3" << endl;
+    //cout << "filterConds: testing3" << endl;
     // range exists
     if (rangeExists) {
-        cout << "filterConds: testing4" << endl;
+        //cout << "filterConds: testing4" << endl;
         // return lower and upper bounds
         lowerBound = lowerTemp;
         upperBound = upperTemp;
@@ -377,7 +379,7 @@ bool filterConds(vector<SelCond>& conds, SelCond& lowerBound, SelCond& upperBoun
     
     // range doesn't exist
     else {
-        cout << "filterConds: testing5" << endl;
+        //cout << "filterConds: testing5" << endl;
         bool lowerBoundAdded = false;
         bool upperBoundAdded = false;
         
@@ -407,10 +409,11 @@ bool filterConds(vector<SelCond>& conds, SelCond& lowerBound, SelCond& upperBoun
         }
     }
     
-    cout << "filterConds: testing6" << endl;
+    //cout << "filterConds: testing6" << endl;
     // swap temporary vector with input vector
     conds.swap(temp);
-    
+   
+/* 
     for (int i = 0; i < conds.size(); i++) {
         cout << i << " key ";
         switch (conds[i].comp) {
@@ -421,10 +424,10 @@ bool filterConds(vector<SelCond>& conds, SelCond& lowerBound, SelCond& upperBoun
             case SelCond::GT: cout << ">"; break;
             case SelCond::GE: cout << ">="; break;
         }
-        cout << " " << conds[i].value << endl;
+        //cout << " " << conds[i].value << endl;
     }
     
-    
+ */   
     // return whether range exists
     return rangeExists;
 }
@@ -676,9 +679,11 @@ void getRidsInRange(SelCond& lowerBound, SelCond& upperBound, BTreeIndex& idx, s
                     idxEntry.rid = rid;
                     idxEntry.key = keyInIndex;
                     resultsToCheck.insert(idxEntry);
-   			 	    if (TESTING) if (TESTING) cout << "getRidsInRange: testing 676" << endl;
+   			 	    if (TESTING) cout << "getRidsInRange: testing 676" << endl;
                 }
                 firstIteration = false;
+				cursor.pid = nextCursor.pid;
+				cursor.eid = nextCursor.eid;
            	}
            	else if (cursor.pid!=stoppingCursor.pid || cursor.eid!=stoppingCursor.eid) {
            	   			 	    cout << "getRidsInRange: testing 681" << endl;
