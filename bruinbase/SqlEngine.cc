@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <fstream>
 #include <set>
+#define TESTING 0
 
 using namespace std;
 
@@ -603,10 +604,10 @@ void getRidsInRange(SelCond& lowerBound, SelCond& upperBound, BTreeIndex& idx, s
     int valueToCompLow = atoi(lowerBound.value);
 	int valueToCompHigh = atoi(upperBound.value);
 
-    cout << "getRidsInRange: starting function" << endl;
+    if (TESTING) cout << "getRidsInRange: starting function" << endl;
 
 	//find cursor for lower bound
-    cout << "getRidsInRange: locate on lower bound" << endl;
+    if (TESTING) cout << "getRidsInRange: locate on lower bound" << endl;
 	error = idx.locate(valueToCompLow, cursor);
 	
 	//if error - lower bound is too high for index, no tuples to return
@@ -616,7 +617,7 @@ void getRidsInRange(SelCond& lowerBound, SelCond& upperBound, BTreeIndex& idx, s
 	}
 
 	//find cursor for upper bound
-    cout << "getRidsInRange: locate on upper bound" << endl;
+    if (TESTING) cout << "getRidsInRange: locate on upper bound" << endl;
 	IndexCursor stoppingCursor;
 	error = idx.locate(valueToCompHigh, stoppingCursor);
 	
@@ -625,15 +626,15 @@ void getRidsInRange(SelCond& lowerBound, SelCond& upperBound, BTreeIndex& idx, s
 		cout << "upper bound exceeds values in index - will read forward to the end" << endl;
 		continueLoop = true;
 		firstIteration = true;
-        cout << "getRidsInRange: testing 628" << endl;
+        if (TESTING) cout << "getRidsInRange: testing 628" << endl;
         while (continueLoop) {
-        cout << "getRidsInRange: testing 630" << endl;
+        if (TESTING) cout << "getRidsInRange: testing 630" << endl;
            error = idx.readForward(cursor, keyInIndex, rid);
            //cout << "inserting into resultsToCheck rid (" << rid.pid << "," << rid.sid <<") with key " << keyInIndex << endl;
            if (firstIteration) {
-        cout << "getRidsInRange: testing 634" << endl;
+        if (TESTING) cout << "getRidsInRange: testing 634" << endl;
                 if ((lowerBound.comp==SelCond::GE && keyInIndex>=valueToCompLow) || (lowerBound.comp==SelCond::GT && keyInIndex>valueToCompLow)){
-                        cout << "getRidsInRange: testing 636" << endl;
+                        if (TESTING) cout << "getRidsInRange: testing 636" << endl;
                     idxEntry.rid = rid;
                     idxEntry.key = keyInIndex;
                     resultsToCheck.insert(idxEntry);            
@@ -641,7 +642,7 @@ void getRidsInRange(SelCond& lowerBound, SelCond& upperBound, BTreeIndex& idx, s
                 firstIteration = false;
            }
            else {
-                   cout << "getRidsInRange: testing 644" << endl;
+                   if (TESTING) cout << "getRidsInRange: testing 644" << endl;
                 idxEntry.rid = rid;
                 idxEntry.key = keyInIndex;
                 resultsToCheck.insert(idxEntry);
@@ -654,7 +655,7 @@ void getRidsInRange(SelCond& lowerBound, SelCond& upperBound, BTreeIndex& idx, s
 
 	//otherwise, will read up until stopping cursor
  	else {		
- 	    cout << "getRidsInRange: testing 657" << endl;
+ 	    if (TESTING) cout << "getRidsInRange: testing 657" << endl;
 		continueLoop = true;
 		firstIteration = true;
 		nextCursor.eid = cursor.eid;
@@ -662,20 +663,20 @@ void getRidsInRange(SelCond& lowerBound, SelCond& upperBound, BTreeIndex& idx, s
 
 		//loop through all values - if first iteration, check whether include lower bound
     	while (continueLoop) {
- 	    cout << "getRidsInRange: testing 665" << endl;
+ 	    if (TESTING) cout << "getRidsInRange: testing 665" << endl;
 	    	//read in value
-	    	cout << "getRidsInRange: starting readForward" << endl;
+	    	if (TESTING) cout << "getRidsInRange: starting readForward" << endl;
        		error = idx.readForward(nextCursor, keyInIndex, rid);
-	    	cout << "getRidsInRange: done with readForward" << endl;
- 	    cout << "getRidsInRange: testing 668" << endl;
+	    	if (TESTING) cout << "getRidsInRange: done with readForward" << endl;
+ 	    if (TESTING) cout << "getRidsInRange: testing 668" << endl;
 			//on first iteration, consider whether to include lower bound or not
 			if (firstIteration && cursor.pid != stoppingCursor.pid || cursor.eid != stoppingCursor.eid) {
-			 	    cout << "getRidsInRange: testing 671" << endl;
+			 	    if (TESTING) cout << "getRidsInRange: testing 671" << endl;
                 if ((lowerBound.comp==SelCond::GE && keyInIndex>=valueToCompLow) || (lowerBound.comp==SelCond::GT && keyInIndex>valueToCompLow)){
                     idxEntry.rid = rid;
                     idxEntry.key = keyInIndex;
                     resultsToCheck.insert(idxEntry);
-   			 	    cout << "getRidsInRange: testing 676" << endl;
+   			 	    if (TESTING) if (TESTING) cout << "getRidsInRange: testing 676" << endl;
                 }
                 firstIteration = false;
            	}
@@ -691,9 +692,9 @@ void getRidsInRange(SelCond& lowerBound, SelCond& upperBound, BTreeIndex& idx, s
 		
 			//have reached stopping condition- check whether to include upper bound
 			else {
-                cout << "getRidsInRange: testing 692" << endl;
+                if (TESTING) cout << "getRidsInRange: testing 692" << endl;
 				if (upperBound.comp==SelCond::LE and keyInIndex==valueToCompHigh) {
-                cout << "getRidsInRange: testing 694" << endl;
+                if (TESTING) cout << "getRidsInRange: testing 694" << endl;
                 //cout << "condition is LE, and key with value " << valueToComp << " is in index - including in resultsToCheck" << endl;
         	        idxEntry.rid = rid;
             	    idxEntry.key = keyInIndex;
@@ -704,7 +705,7 @@ void getRidsInRange(SelCond& lowerBound, SelCond& upperBound, BTreeIndex& idx, s
 		}
     }
     
-    cout << "getRidsInRange: exiting function" << endl;
+    if (TESTING) cout << "getRidsInRange: exiting function" << endl;
 }
 
 // filters a given keys with given conditions in place
