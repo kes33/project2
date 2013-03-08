@@ -38,36 +38,59 @@ void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<IndexEntry>& resul
 void filterKeys(const vector<SelCond>& conds, set<IndexEntry>& results);
 bool valueSatisfiesConds(string& value, const vector<SelCond>& conds);
 void getRidsInRange(SelCond& lowerBound, SelCond& upperBound, BTreeIndex& idx, set<IndexEntry>& resultsToCheck);
+bool filterConds(vector<SelCond>& conds, SelCond& lowerBound, SelCond& upperBound);
+
 
 //helper function to compare key conditions (EQ > GT/GE > LT/LE > NE)
 bool compareKeyConds (const SelCond& a, const SelCond& b) {
-  switch (a.comp) {
-    case SelCond::EQ:
-      return true;
-	  break;
-    case SelCond::GE:
-    case SelCond::GT:
-      if (b.comp == SelCond::EQ)
-        return false;
-      if (b.comp == SelCond::GE || b.comp == SelCond::GT) {
-			if (atoi(b.value)>atoi(a.value))
-				return false;
-	  }
-	  else
-        return true;
-	  break;
+    switch (a.comp) {
+        case SelCond::EQ:
+            return true;
+	        break;
+        case SelCond::GE:
+        case SelCond::GT:
+            if (b.comp == SelCond::EQ)
+                return false;
+            else if (b.comp == SelCond::GE || b.comp == SelCond::GT) {
+		        if (atoi(a.value) < atoi(b.value))
+			        return false;
+		        else if (atoi(a.value) == atoi(b.value)) { // break ties between two GT/GEs
+		            if (a.comp == SelCond::GE && b.comp == SelCond::GT) // choose b when 1) a: >=   b: >
+		                return false;
+		            else        // choose a when 1) a: >=    b: >=
+		                        //               2) a: >     b: >
+		                        //               3) a: >     b: >=
+		                return true;
+		        }
+		        else
+		            return true;
+	        }
+    	    else
+                return true;
+	        break;
     case SelCond::LT:
     case SelCond::LE:
-      if (b.comp == SelCond::EQ || b.comp == SelCond::GE || b.comp == SelCond::GT)
+        if (b.comp == SelCond::EQ || b.comp == SelCond::GE || b.comp == SelCond::GT)
+            return false;
+        else if (b.comp == SelCond::LT || b.comp == SelCond::LE) {
+		    if (atoi(a.value) > atoi(b.value))
+			    return false;
+			else if (atoi(a.value) == atoi(b.value)) { // break ties between two LT/LEs
+			    if (a.comp == SelCond::LE && b.comp == SelCond::LT) // choose b when 1) a: <=   B: <
+			        return false;
+			    else    // choose a when 1) a: <=   b: <=
+			            //               2) a: <    b: <
+			            //               3) a: <    B: <=
+			        return true;
+			}
+			else
+			    return true;
+	    }
+        else
+            return true;
+        break;
+    default:
         return false;
-      if (b.comp == SelCond::LT || b.comp == SelCond::LE){
-			if (atoi(b.value) < atoi(a.value))
-				return false;
-	  }	
-      else return true;
-      break;
-	default:
-      return false;
   }
 } 
 
@@ -115,6 +138,7 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
 
 	vector<SelCond> keyConds, valueConds;
 
+
     // PREPARE SELECT CONDITIONS
     // separate conds into keyConds (sorted) or valueConds
     // scan entire table if no conditions
@@ -142,6 +166,7 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
             valueConds.push_back(conds[i]);
 
     sort(keyConds.begin(), keyConds.end(), compareKeyConds);
+    
 
     // if keyConds is empty or contains only <> select conditions, scan entire table
     if (keyConds.empty() || keyConds[0].comp==SelCond::NE) {
@@ -150,7 +175,7 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
         rf.close();
         return 0;
     }
-
+  
   
     // GET KEYS
     // get keys that satisfy all key conditions
@@ -245,6 +270,83 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
     // CLEAN UP
     rf.close();
     return 0;
+}
+    
+
+// if range exists, return true and the SelConds for lower and upper bounds, else false
+// note: this function does not check if the range is valid
+bool filterConds(vector<SelCond>& conds, SelCond& lowerBound, SelCond& upperBound) {
+    vector<SelCond> temp;
+    SelCond lowerTemp, upperTemp;
+    
+    bool rangeExists = false;
+    
+    
+    // check if range exists by attempting to get lower and upper bounds
+    bool lowerBoundFound = false;
+    bool upperBoundFound = false;
+    
+    for (int i = 0; i < conds.size() && (!lowerBoundFound || !upperBoundFound); i++)
+        if (!lowerBoundFound && (conds[i].comp == SelCond::GT || conds[i].comp == SelCond::GE)) {
+            lowerTemp = conds[i];
+            lowerBoundFound = true;
+        }
+        else if (!upperBoundFound && (conds[i].comp == SelCond::LT || conds[i].comp == SelCond::LE)) {
+            upperTemp = conds[i];
+            upperBoundFound = true;
+        }
+    rangeExists = lowerBoundFound && upperBoundFound;
+    
+    
+    // range exists
+    if (rangeExists) {
+    
+        // return lower and upper bounds
+        lowerBound = lowerTemp;
+        upperBound = upperTemp;
+        
+        // create new conds vector with only NE and EQ conditions
+        for (int i = 0; i < conds.size(); i++)
+            if (conds[i].comp == SelCond::NE || conds[i].comp == SelCond::EQ)
+                temp.push_back(conds[i]);
+    }
+    
+    // range doesn't exist
+    else {
+        bool lowerBoundAdded = false;
+        bool upperBoundAdded = false;
+        
+        // create new conds vector with only one GT/GE or only one LT/LE
+        // note: this code assumes the conds vector is "sorted"
+        for (int i = 0; i < conds.size(); i++) {
+            switch (conds[i].comp) {
+                case SelCond::EQ:  temp.push_back(conds[i]);
+                break;
+                case SelCond::NE:  temp.push_back(conds[i]);
+                break;
+                case SelCond::GT:
+                case SelCond::GE: 
+                    if (!lowerBoundAdded) {
+                        temp.push_back(conds[i]);
+                        lowerBoundAdded = true;
+                    }
+                break;
+                case SelCond::LT:
+                case SelCond::LE:
+                    if (!upperBoundAdded) {
+                        temp.push_back(conds[i]);
+                        upperBoundAdded = true;
+                    }
+                break;
+            }
+        }
+    }
+    
+    // swap temporary vector with input vector
+    conds.swap(temp);
+    
+    // return whether range exists
+    return rangeExists;
 }
 
 bool valueSatisfiesConds(string& value, const vector<SelCond>& conds) {
