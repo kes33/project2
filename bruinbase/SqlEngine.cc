@@ -37,24 +37,36 @@ int sqlparse(void);
 void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<IndexEntry>& resultsToCheck);
 void filterKeys(const vector<SelCond>& conds, set<IndexEntry>& results);
 bool valueSatisfiesConds(string& value, const vector<SelCond>& conds);
+void getRidsInRange(SelCond lowerBound, SelCond upperBound, BTreeIndex& idx, set<IndexEntry>& resultsToCheck);
 
 //helper function to compare key conditions (EQ > GT/GE > LT/LE > NE)
 bool compareKeyConds (const SelCond& a, const SelCond& b) {
   switch (a.comp) {
     case SelCond::EQ:
       return true;
+	  break;
     case SelCond::GE:
     case SelCond::GT:
       if (b.comp == SelCond::EQ)
         return false;
-      else
+      if (b.comp == SelCond::GE || b.comp == SelCond::GT) {
+			if (atoi(b.value)>atoi(a.value))
+				return false;
+	  }
+	  else
         return true;
+	  break;
     case SelCond::LT:
     case SelCond::LE:
       if (b.comp == SelCond::EQ || b.comp == SelCond::GE || b.comp == SelCond::GT)
         return false;
+      if (b.comp == SelCond::LT || b.comp == SelCond::LE){
+			if (atoi(b.value) < atoi(a.value))
+				return false;
+	  }	
       else return true;
-    default:
+      break;
+	default:
       return false;
   }
 } 
@@ -146,7 +158,9 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
     //    then filter those results with remaining conditions
     set<IndexEntry> resultsToCheck;
     getRidsFirstCond(keyConds[0], index, resultsToCheck);
-    
+
+	//cout << "number of returned keys: " << resultsToCheck.size() << endl;  
+ 
     if (resultsToCheck.empty()) {
         //cout << "0 tuples found." << endl;
         rf.close();
@@ -155,6 +169,7 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
     else
         filterKeys(keyConds, resultsToCheck);
 
+	//cout << "number of returned keys after filter: " << resultsToCheck.size() << endl;
 
     // PRINT TUPLES
     // no valueConds to check -- proceed to print tuples
