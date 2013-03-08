@@ -437,6 +437,7 @@ void getRidsInRange(SelCond& lowerBound, SelCond& upperBound, BTreeIndex& idx, s
 	
 	//if error - upper bound exceeds values in index - will read forward to the end
 	if (error !=0) {
+		cout << "upper bound exceeds values in index - will read forward to the end" << endl;
 		continueLoop = true;
 		firstIteration = true;
         while (continueLoop) {
@@ -491,7 +492,7 @@ void getRidsInRange(SelCond& lowerBound, SelCond& upperBound, BTreeIndex& idx, s
               		cursor.eid = nextCursor.eid;
 			}
 		
-			//have reached stopping condition
+			//have reached stopping condition- check whether to include upper bound
 			else {
 				if (upperBound.comp==SelCond::LE and keyInIndex==valueToCompHigh) {
                 //cout << "condition is LE, and key with value " << valueToComp << " is in index - including in resultsToCheck" << endl;
