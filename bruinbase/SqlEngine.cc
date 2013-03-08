@@ -101,18 +101,28 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
         return 0;
     }
 
+	vector<SelCond> keyConds, valueConds;
 
     // PREPARE SELECT CONDITIONS
     // separate conds into keyConds (sorted) or valueConds
     // scan entire table if no conditions
     if (conds.empty()) {
-        //cout << "no conditions, calling linear scan" << endl << endl;
-        linearScan(attr, rf, conds);
-        rf.close();
-        return 0;
-    }
+        if (attr == 2 || attr == 3) {  // value or *	
+		    //cout << "no conditions, calling linear scan" << endl << endl;
+            linearScan(attr, rf, conds);
+            rf.close();
+            return 0;
+        }
+        else {
+		    SelCond condition;
+		    condition.comp=SelCond::GE;
+		    condition.attr=1;
+            char condValue = '1';
+		    condition.value = &condValue;
+    	    keyConds.push_back(condition);
+        }
+	}
 
-    vector<SelCond> keyConds, valueConds;
     for (int i = 0; i < conds.size(); i++)
         if (conds[i].attr == 1)
             keyConds.push_back(conds[i]);
