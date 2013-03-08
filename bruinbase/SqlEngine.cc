@@ -117,7 +117,7 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
 		    SelCond condition;
 		    condition.comp=SelCond::GE;
 		    condition.attr=1;
-            char condValue = '1';
+            char condValue = '0';
 		    condition.value = &condValue;
     	    keyConds.push_back(condition);
         }
@@ -177,7 +177,7 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
                 for (set<IndexEntry>::iterator it = resultsToCheck.begin(); it != resultsToCheck.end(); it++) {
                     rf.read(it->rid, key, value);
                     cout << key << "\t" << value << endl;
-                }
+			}
                 break;
       
             case 4:    // print count
@@ -272,7 +272,8 @@ void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<IndexEntry>& resul
 	bool continueLoop;
 	RC error;
     int valueToComp = atoi(condition.value);
-    
+	//cout << "value to compare with is " << valueToComp << endl;   
+ 
     switch(condition.comp) {
       //equality condition - look up directly in index
       case (SelCond::EQ):
@@ -300,15 +301,16 @@ void getRidsFirstCond(SelCond condition, BTreeIndex& idx, set<IndexEntry>& resul
       //Greater than or greater than or equal condition
       case (SelCond::GT):
       case (SelCond::GE):
-        //cout << "checking on GT or GE condition of key compared to " << valueToComp << endl;
         if (idx.locate(valueToComp, cursor) != 0) {
           //cerr << "no key in index found with key > or >= " << valueToComp << endl;
           return;
         }
-        
+
 		//check first value for GE or GT condition
 		error = idx.readForward(cursor, keyInIndex, rid);
-        if ((condition.comp==SelCond::GE && keyInIndex==valueToComp) || (condition.comp==SelCond::GT && keyInIndex>valueToComp)){ 
+		//cout << "first result found is rid (" << rid.pid << "," << rid.sid <<") with key " << keyInIndex << endl;
+
+        if ((condition.comp==SelCond::GE && keyInIndex>=valueToComp) || (condition.comp==SelCond::GT && keyInIndex>valueToComp)){ 
           //cout << "inserting into resultsToCheck rid (" << rid.pid << "," << rid.sid <<") with key " << keyInIndex << endl;
           idxEntry.rid = rid;
           idxEntry.key = keyInIndex;
