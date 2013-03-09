@@ -915,6 +915,7 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
  
     //store in index if index is selected
     if (index) {
+	  //cout << "key being inserted is " << key << endl;
       if (idx.insert(key, rid)!=0) {
         //cerr << "Error inserting value in index in SqlEngine.load()" << endl;
         return(RC_FILE_WRITE_FAILED);

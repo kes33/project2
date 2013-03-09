@@ -3,6 +3,12 @@
 #include <cstring>
 using namespace std;
 
+
+//constructor
+BTLeafNode::BTLeafNode() {
+	setKeyCount(0);
+}
+
 /*
  * Read the content of the node from the page pid in the PageFile pf.
  * @param pid[IN] the PageId to read
