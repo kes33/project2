@@ -29,7 +29,7 @@ typedef struct {
 
 
 bool operator<(const IndexEntry& a, const IndexEntry& b) {
-	return (a.rid<b.rid);
+	return (a.key<b.key);
 }
 
 extern FILE* sqlin;
@@ -284,7 +284,7 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
             case 3:    // print key and value
                 for (set<IndexEntry>::iterator it = resultsToCheck.begin(); it != resultsToCheck.end(); it++) {
                     rf.read(it->rid, key, value);
-                    cout << key << "\t" << value << endl;
+                    cout << key << " '" << value << "'" << endl;
 			}
                 break;
       
@@ -318,7 +318,7 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
             for (set<IndexEntry>::iterator it = resultsToCheck.begin(); it != resultsToCheck.end(); it++) {
                 rf.read(it->rid, key, value);
                 if (valueSatisfiesConds(value, valueConds))
-                    cout << key << "\t" << value << endl;
+                    cout << key << " '" << value << "'" << endl;
             }
             break;
       
@@ -691,7 +691,7 @@ void getRidsInRange(SelCond& lowerBound, SelCond& upperBound, BTreeIndex& idx, s
 				cursor.eid = nextCursor.eid;
            	}
            	else if (cursor.pid!=stoppingCursor.pid || cursor.eid!=stoppingCursor.eid) {
-           	   			 	    cout << "getRidsInRange: testing 681" << endl;
+           	   		if (TESTING) cout << "getRidsInRange: testing 681" << endl;
               	//cout << "inserting into resultsToCheck rid (" << rid.pid << "," << rid.sid <<") with key " << keyInIndex << endl;
               		idxEntry.rid = rid;
               		idxEntry.key = keyInIndex;
