@@ -23,8 +23,7 @@ BTreeIndex::BTreeIndex()
 }
 
 //assumes indexfile is already open
-/*
- * void BTreeIndex::printRoot(){
+void BTreeIndex::printRoot(){
 	if (treeHeight == 0) {
 		cout << "tree is empty";
 		return;

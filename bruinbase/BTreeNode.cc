@@ -382,22 +382,22 @@ RC BTLeafNode::insertInBuffer(int key, const RecordId& rid) {
 //     *test = 5;
 // }
 // 
-// void BTNonLeafNode::printAllValues() {
-//     int * index = buffer;
-// 
-//     cout << "PRINTING NON-LEAF NODE DATA"          << endl;
-//     cout << "  member variables: "                 << endl;
-//     cout << "    keyCount: " << keyCount           << endl;
-//     cout << "  buffer contents: "                  << endl;
-//     cout << "    Count: " << *(index)              << endl;
-//     cout << "    Key: -- \tPID: " << *(++index)    << endl;
-//     
-//     int count = 0;
-//     while (count++ < keyCount) {
-//        cout << "    Key: " << *(++index);
-//        cout << "\tPID: " << *(++index) << endl;
-//    }
-// }
+ void BTNonLeafNode::printAllValues() {
+     int * index = buffer;
+ 
+     cout << "PRINTING NON-LEAF NODE DATA"          << endl;
+     cout << "  member variables: "                 << endl;
+     cout << "    keyCount: " << keyCount           << endl;
+     cout << "  buffer contents: "                  << endl;
+     cout << "    Count: " << *(index)              << endl;
+     cout << "    Key: -- \tPID: " << *(++index)    << endl;
+     
+     int count = 0;
+     while (count++ < keyCount) {
+        cout << "    Key: " << *(++index);
+        cout << "\tPID: " << *(++index) << endl;
+    }
+ }
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
