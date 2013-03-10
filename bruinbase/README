@@ -11,11 +11,11 @@ BTreeNode.h
 
 BTreeNode.cc
     - added BTLeafNode constructor
+			->we found a bug in BTLeafNode insert while calling the load function: the first time a leaf node
+          	is created, if no "read" call is done, the buffer was being left uninitialized, and an incorrect
+			reading of getKeyCount() resulted, leading to a segmentation fault.  This was fixed by initializing	
+			the key count to 0 upon construction
     - all other changes were to remove or comment out print statements used for debugging
 
 BTreeIndex.h
-    - added treeExists()
-
-BTreeIndex.h
-    - added treeExists()
     - all other changes were to remove or comment out print statements used for debugging

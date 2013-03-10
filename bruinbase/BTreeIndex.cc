@@ -48,15 +48,6 @@ void BTreeIndex::printRoot(){
 	delete leafNode;
 	delete nonLeafNode;
 }
-*/
-
-bool BTreeIndex::treeExists() {
-	if (treeHeight <= 0)
-		return false;
-	else 
-		return true;
-}
-
 
 /*
  * Open the index file in read or write mode.
