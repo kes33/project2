@@ -250,7 +250,7 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
     
         // if no such keys, return
         if (resultsToCheck.empty()) {
-            cout << "0 tuples found." << endl;
+//             cout << "0 tuples found." << endl;
             index.close();
 			rf.close();
             return 0;
@@ -620,7 +620,7 @@ void getRidsInRange(SelCond& lowerBound, SelCond& upperBound, BTreeIndex& idx, s
 	
 	//if error - lower bound is too high for index, no tuples to return
 	if (error != 0) {
-		cout << "lower bound is too high, no tuples to return " << endl;
+// 		cout << "lower bound is too high, no tuples to return " << endl;
 		return;
 	}
 
@@ -631,7 +631,7 @@ void getRidsInRange(SelCond& lowerBound, SelCond& upperBound, BTreeIndex& idx, s
 	
 	//if error - upper bound exceeds values in index - will read forward to the end
 	if (error !=0) {
-		cout << "upper bound exceeds values in index - will read forward to the end" << endl;
+// 		cout << "upper bound exceeds values in index - will read forward to the end" << endl;
 		continueLoop = true;
 		firstIteration = true;
         if (TESTING) cout << "getRidsInRange: testing 628" << endl;
