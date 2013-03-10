@@ -1,0 +1,21 @@
+Team:
+Kim Swennen (902-813-926) - kswennen@gmail.com
+Ben Tzou (404-144-069) - bentzou@gmail.com
+
+Kim and Ben evenly divided up the work for part D. Ben and Kim wrote the pseudocode for select together and evenly divided the implementation.
+
+Please note that for our Part D submission, we are also re-submitting BTreeNode.h, BTreeNode.cc, BTreeIndex.h and BTreeIndex.cc. The large majority of changes were to remove or comment out print statements used for debugging, but we also added a constructor for BTLeafNode and a short function for BTreeIndex. The file-by-file changes and the reasons for including them are described below:
+
+BTreeNode.h
+    - added BTLeafNode() constructor
+
+BTreeNode.cc
+    - added BTLeafNode constructor
+    - all other changes were to remove or comment out print statements used for debugging
+
+BTreeIndex.h
+    - added treeExists()
+
+BTreeIndex.h
+    - added treeExists()
+    - all other changes were to remove or comment out print statements used for debugging
