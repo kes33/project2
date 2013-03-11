@@ -192,6 +192,37 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
         cout << " " << keyConds[i].value << endl;
     }
 */    
+
+    
+    // check if keyConds contains multiple EQ conditions
+    vector<SelCond> eqConds;
+    for (int i = 0; i < keyConds.size(); i++)
+        if (keyConds[i].comp == SelCond::EQ)
+            eqConds.push_back(keyConds[i]);
+            
+    // if more than one EQ cond, check that they all have the same value
+    bool sameValueEqConds = true;
+    if (eqConds.size() > 1) {
+        SelCond temp = eqConds[0];
+        for (int i = 1; i < eqConds.size(); i++) {
+            if (temp.value != eqConds[i].value) {
+                sameValueEqConds = false;
+                break;
+            }
+        }
+    }
+    
+    // there are more than one EQ conds and they have different values
+    if (!sameValueEqConds) {
+        if (attr == 4)
+            cout << "0" << endl;
+        index.close();
+        rf.close();
+        return 0;
+    }
+    
+    
+    
     // filter keyConds and obtain range of keys to check (if it exists)
     set<IndexEntry> resultsToCheck;
     SelCond lowerBound, upperBound;
@@ -224,7 +255,8 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
              (atoi(lowerBound.value)+1 == atoi(upperBound.value) &&
              lowerBound.comp == SelCond::GT &&
              upperBound.comp == SelCond::LT)) {
-            //cout << "0 tuples found" << endl;
+            if (attr == 4)
+                cout << "0" << endl;
             index.close();
 			rf.close();
             return 0;
@@ -250,7 +282,8 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
     
         // if no such keys, return
         if (resultsToCheck.empty()) {
-//             cout << "0 tuples found." << endl;
+            if (attr == 4)
+                cout << "0" << endl;
             index.close();
 			rf.close();
             return 0;
@@ -285,7 +318,7 @@ RC SqlEngine::select(int attr, const string &table, const vector<SelCond>&conds)
                 for (set<IndexEntry>::iterator it = resultsToCheck.begin(); it != resultsToCheck.end(); it++) {
                     rf.read(it->rid, key, value);
                     cout << key << " '" << value << "'" << endl;
-			}
+			    }
                 break;
       
             case 4:    // print count
