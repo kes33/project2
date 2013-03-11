@@ -2,20 +2,26 @@ Team:
 Kim Swennen (902-813-926) - kswennen@gmail.com
 Ben Tzou (404-144-069) - bentzou@gmail.com
 
-Kim and Ben evenly divided up the work for part D. Ben and Kim wrote the pseudocode for select together and evenly divided the implementation.
+Kim and Ben evenly divided up the work for part D. Ben and Kim wrote the pseudocode for
+the select function together and evenly divided the implementation. We wrote our code to
+follow the specifications.
 
-Please note that for our Part D submission, we are also re-submitting BTreeNode.h, BTreeNode.cc, BTreeIndex.h and BTreeIndex.cc. The large majority of changes were to remove or comment out print statements used for debugging, but we also added a constructor for BTLeafNode and a short function for BTreeIndex. The file-by-file changes and the reasons for including them are described below:
+Please note that for our Part D submission, we are also re-submitting BTreeNode.h,
+BTreeNode.cc, and BTreeIndex.cc. The large majority of changes were to remove
+or comment out print statements used for debugging, but we also added a constructor for
+BTLeafNode. The file-by-file changes and the reasons for including them are described
+below:
 
 BTreeNode.h
     - added BTLeafNode() constructor
 
 BTreeNode.cc
-    - added BTLeafNode constructor
-			->we found a bug in BTLeafNode insert while calling the load function: the first time a leaf node
-          	is created, if no "read" call is done, the buffer was being left uninitialized, and an incorrect
-			reading of getKeyCount() resulted, leading to a segmentation fault.  This was fixed by initializing	
-			the key count to 0 upon construction
+    - added BTLeafNode constructor. We found a bug in BTLeafNode's insert function while
+    calling the load function: the first time a leaf node is created, if no "read" call is
+    done, the buffer was being left uninitialized, and an incorrect reading of
+    getKeyCount() resulted, leading to a segmentation fault.  This was fixed by
+    initializing the key count to 0 upon construction
     - all other changes were to remove or comment out print statements used for debugging
 
-BTreeIndex.h
-    - all other changes were to remove or comment out print statements used for debugging
+BTreeIndex.cc
+    - all changes were to remove or comment out print statements used for debugging
